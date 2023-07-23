@@ -20,8 +20,6 @@ bitCountInByte = [
 ]
 
 # Calculate total bit counts in a bitmap
-
-
 def BitCount(bitmap):
     n = 0
     for i in range(0, len(bitmap)):
@@ -32,8 +30,6 @@ def BitCount(bitmap):
     return n
 
 # Get the bit set at offset position in bitmap
-
-
 def BitGet(bitmap, position):
     bit = bitmap[int(position / 8)]
     if type(bit) is str:
