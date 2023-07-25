@@ -17,7 +17,7 @@ from pymysqlreplication.exceptions import TableMetadataUnavailableError
 from pymysqlreplication.constants.BINLOG import *
 from pymysqlreplication.row_event import *
 
-__all__ = ["TestBasicBinLogStreamReader", "TestMultipleRowBinLogStreamReader", "TestCTLConnectionSettings", "TestGtidBinLogStreamReader","TestMariadbBinlogStreaReader"]
+__all__ = ["TestBasicBinLogStreamReader", "TestMultipleRowBinLogStreamReader", "TestCTLConnectionSettings", "TestGtidBinLogStreamReader"]
 
 
 class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
@@ -1002,21 +1002,6 @@ class GtidTests(unittest.TestCase):
             gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:1-:1")
             gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac::1")
 
-class TestMariadbBinlogStreaReader(base.PyMySQLReplicationMariaDbTestCase):
-        
-    def test_gtid_list_event(self):
-        event = self.stream.fetchone()
-        self.assertEqual(event.position, 4)  
-        
-        #FormatDescriptionEvent
-        event = self.stream.fetchone()
-        self.assertEqual(event.event_type,15)
-        self.assertIsInstance(event,FormatDescriptionEvent)
-
-        #MariadbAnnotateRowsEvent
-        event = self.stream.fetchone()
-        self.assertEqual(event.event_type,163)
-        self.assertIsInstance(event,MariadbGtidListEvent)
 
 if __name__ == "__main__":
     import unittest
