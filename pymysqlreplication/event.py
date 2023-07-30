@@ -418,10 +418,13 @@ class ExecuteLoadQueryEvent(BinLogEvent):
 
 class IntvarEvent(BinLogEvent):
     """
-
+    Stores the value of auto-increment variables 'LAST_INSERT_ID()' and 'INSERT_ID()'.
+    This event will be created just before a QueryEvent.
+    
     Attributes:
-        type
-        value
+        type: 1 byte identifying the type of variable stored
+        (LAST_INSERT_ID_EVENT == 1, INSERT_ID_EVENT == 2)
+        value: The value of the variable
     """
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         super(IntvarEvent, self).__init__(from_packet, event_size, table_map,
