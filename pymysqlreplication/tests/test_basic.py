@@ -1009,7 +1009,7 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
         self.stream.close()
         self.stream = BinLogStreamReader(
             self.database, 
-            server_id=1023,
+            server_id=1,
             blocking=False,
             is_mariadb=True
         )
@@ -1033,6 +1033,7 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
         #GtidLogEvent
         event = self.stream.fetchone()
         self.assertEqual(event.event_type, 33)    
+
 
         #MariadbBinLogCheckPointEvent
         event = self.stream.fetchone()
