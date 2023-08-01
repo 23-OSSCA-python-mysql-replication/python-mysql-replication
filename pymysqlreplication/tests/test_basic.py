@@ -1013,8 +1013,8 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
             blocking=False,
             is_mariadb=True
         )
-        query = "set global binlog_commit_wait_usec=5000"
-        self.execute(query)
+        # query = "set global binlog_commit_wait_usec=5000"
+        # self.execute(query)
         # query = "set global binlog_commit_wait_count=1"
         query = "DROP TABLE IF EXISTS test"
         self.execute(query)
