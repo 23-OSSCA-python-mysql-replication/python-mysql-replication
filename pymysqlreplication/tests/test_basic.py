@@ -1016,7 +1016,7 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
 
         self.stream = BinLogStreamReader(
             self.database, 
-            server_id=1024,
+            server_id=1,
             blocking=False,
             is_mariadb=True
         )
