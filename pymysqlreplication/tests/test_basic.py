@@ -1013,9 +1013,9 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
             blocking=False,
             is_mariadb=True
         )
-        # query = "set global binlog_commit_wait_usec=5000"
-        # self.execute(query)
-        # query = "set global binlog_commit_wait_count=1"
+        query = "set global binlog_commit_wait_usec=5000"
+        self.execute(query)
+        query = "set global binlog_commit_wait_count=1"
         query = "DROP TABLE IF EXISTS test"
         self.execute(query)
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
@@ -1032,8 +1032,15 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
 
         #GtidLogEvent
         event = self.stream.fetchone()
-        self.assertEqual(event.event_type, 33)    
+        self.assertEqual(event.event_type, 33)
 
+        #QueryEvent1
+        event = self.stream.fetchone()
+        self.assertEqual(event.event_type, 2)
+
+        #QueryEvent2
+        event = self.stream.fetchone()
+        self.assertEqual(event.event_type, 2)
 
         #MariadbBinLogCheckPointEvent
         event = self.stream.fetchone()
