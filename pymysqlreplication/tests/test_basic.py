@@ -1006,19 +1006,22 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
 
     def test_binlog_checkpoint_event(self):
 
+        query = "DROP TABLE IF EXISTS test"
+        self.execute(query)
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
 
         self.stream.close()
         self.stream = BinLogStreamReader(
             self.database, 
-            server_id=1024, 
+            server_id=1024,
             blocking=False,
             only_events=[MariadbBinLogCheckPointEvent],
             is_mariadb=True
             )
 
         event = self.stream.fetchone()
+        self.assertEqual(event.event_type, 161)
         self.assertIsInstance(event, MariadbBinLogCheckPointEvent)
         self.assertEqual(event.filename, self.bin_log_basename() + ".000001")
 

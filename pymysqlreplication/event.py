@@ -114,6 +114,11 @@ class MariadbBinLogCheckPointEvent(BinLogEvent):
     """
     Check point in binlog event in MariaDB
     https://mariadb.com/kb/en/binlog_checkpoint_event/
+
+    Attributes:
+        Log filename length : Log filename length
+        Log filename : Name of checkpointed file
+
     """
 
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
