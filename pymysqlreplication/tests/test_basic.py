@@ -1008,18 +1008,20 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
         # query = "set global binlog_commit_wait_usec=5000"
         # self.execute(query)
         # query = "set global binlog_commit_wait_count=1"
-        query = "DROP TABLE IF EXISTS test"
-        self.execute(query)
-        query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
-        self.execute(query)
-        self.stream.close()
 
+        self.stream.close()
         self.stream = BinLogStreamReader(
             self.database, 
             server_id=1,
             blocking=False,
             is_mariadb=True
         )
+
+        query = "DROP TABLE IF EXISTS test"
+        self.execute(query)
+        query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
+        self.execute(query)
+        self.stream.close()
 
         #Magic
         event = self.stream.fetchone()
