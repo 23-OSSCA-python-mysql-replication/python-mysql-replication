@@ -1018,34 +1018,33 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
             self.database, 
             server_id=1024,
             blocking=False,
-            only_events=[MariadbBinLogCheckPointEvent],
             is_mariadb=True
         )
 
-        # #Magic
-        # event = self.stream.fetchone()
-        # self.assertEqual(event.position, 4)  
+        #Magic
+        event = self.stream.fetchone()
+        self.assertEqual(event.position, 4)  
         
         # #FormatDescriptionEvent
-        # event = self.stream.fetchone()
-        # self.assertEqual(event.event_type,15)
-        # self.assertIsInstance(event,FormatDescriptionEvent)
+        event = self.stream.fetchone()
+        self.assertEqual(event.event_type,15)
+        self.assertIsInstance(event,FormatDescriptionEvent)
 
         # #GtidLogEvent1
-        # event = self.stream.fetchone()
-        # self.assertEqual(event.event_type, 33)
+        event = self.stream.fetchone()
+        self.assertEqual(event.event_type, 33)
 
         # #QueryEvent1
-        # event = self.stream.fetchone()
-        # self.assertEqual(event.event_type, 2)
+        event = self.stream.fetchone()
+        self.assertEqual(event.event_type, 2)
 
         # #GtidLogEvent2
-        # event = self.stream.fetchone()
-        # self.assertEqual(event.event_type, 33)
+        event = self.stream.fetchone()
+        self.assertEqual(event.event_type, 33)
 
         # #QueryEvent2
-        # event = self.stream.fetchone()
-        # self.assertEqual(event.event_type, 2)
+        event = self.stream.fetchone()
+        self.assertEqual(event.event_type, 2)
 
         #MariadbBinLogCheckPointEvent
         event = self.stream.fetchone()
@@ -1056,3 +1055,4 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
 if __name__ == "__main__":
     import unittest
     unittest.main()
+# 
