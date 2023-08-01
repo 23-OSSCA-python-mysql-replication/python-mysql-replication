@@ -11,7 +11,6 @@ MARIADB_SETTINGS = {
     "passwd": "secret123passwd",
 }
 
-
 class MariaDbGTID:
     def __init__(self, conn_config):
         self.connection = pymysql.connect(**conn_config)
