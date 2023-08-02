@@ -163,6 +163,15 @@ class XAPrepareEvent(BinLogEvent):
 
 
 class FormatDescriptionEvent(BinLogEvent):
+    """
+    A Format Description Event, written at the start of a binary log file (for binlog version 4).
+    It provides the necessary information for decoding the subsequent events in the file.
+    
+    Attributes:
+        binlog_version: Version of the binary log format. 
+        mysql_version_str: Server's MySQL version. 
+    """
+
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         super(FormatDescriptionEvent, self).__init__(from_packet, event_size, table_map,
                                           ctl_connection, **kwargs)
