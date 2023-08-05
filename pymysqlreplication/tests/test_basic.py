@@ -1003,7 +1003,8 @@ class GtidTests(unittest.TestCase):
             gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac::1")
 
     def test_open_file(self):
-        f = open("/home/runner/work/python-mysql-replication/python-mysql-replication/.mariadb/no_encryption_key.key")
+        f = open("/home/runner/work/python-mysql-replication/python-mysql-replication/README.md")
+        print(f.readline())
 if __name__ == "__main__":
     import unittest
     unittest.main()
