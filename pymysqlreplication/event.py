@@ -471,6 +471,45 @@ class RandEvent(BinLogEvent):
         print("seed1: %d" % (self.seed1))
         print("seed2: %d" % (self.seed2))
 
+class UserVarEvent(BinLogEvent):
+    """
+    UserVarEvent is generated every time a statement uses a user variable.
+    Indicates the value to use for the user variable in the next statement.
+
+    :ivar name - User variable name.
+    :ivar value - Value of the user variable.
+    :ivar type - Type of the user variable.
+    :ivar charset - The number of the character set for the user variable.
+    :ivar is_null - Non-zero if the variable value is the SQL NULL value, 0 otherwise.
+    :ivar flags - Extra flags associated with the user variable.
+    """
+
+    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
+        super(UserVarEvent, self).__init__(from_packet, event_size, table_map, ctl_connection, **kwargs)
+
+        # Payload
+        self.name_len = self.packet.read_uint32()
+        self.name = self.packet.read(self.name_len).decode()
+        self.is_null = self.packet.read_uint8()
+
+        if not self.is_null:
+            self.type = self.packet.read_uint8()
+            self.charset = self.packet.read_uint32()
+            self.value_len = self.packet.read_uint32()
+            self.value = self.packet.read(self.value_len).decode()
+            self.flags = self.packet.read_uint8()
+            
+    def _dump(self):
+        super(UserVarEvent, self)._dump()
+        print("User variable name: %s" % self.name)
+        print("Is NULL: %s" % ("Yes" if self.is_null else "No"))
+        if not self.is_null:
+            print("Type: %s" % self.type)
+            print("Charset: %s" % self.charset)
+            print("Value: %s" % self.value)
+            if self.flags is not None:
+                print("Flags: %s" % self.flags)
+
 class NotImplementedEvent(BinLogEvent):
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         super(NotImplementedEvent, self).__init__(
