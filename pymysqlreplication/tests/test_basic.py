@@ -1009,7 +1009,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.stream = BinLogStreamReader(
             self.database,
             server_id=1024,
-            only_events=(RandEvent, QueryEvent),
+            only_events=(RandEvent, UserVarEvent, QueryEvent),
             fail_on_table_metadata_unavailable=True
         )
         self.execute("SET @@binlog_format='STATEMENT'")
@@ -1023,10 +1023,29 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
         self.assertIsInstance(self.stream.fetchone(), QueryEvent)
 
-        expect_rand_event = self.stream.fetchone()
-        self.assertIsInstance(expect_rand_event, RandEvent)
-        self.assertEqual(type(expect_rand_event.seed1), int)
-        self.assertEqual(type(expect_rand_event.seed2), int)
+        expected_rand_event = self.stream.fetchone()
+        self.assertIsInstance(expected_rand_event, RandEvent)
+        self.assertEqual(type(expected_rand_event.seed1), int)
+        self.assertEqual(type(expected_rand_event.seed2), int)
+
+    def test_user_var_event(self):
+        self.execute("CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR(50), PRIMARY KEY (id))")
+        self.execute("SET @test_user_var = 'foo'")
+        self.execute("INSERT INTO test (data) VALUES(@test_user_var)")
+        self.execute("COMMIT")
+
+        self.assertEqual(self.bin_log_format(), "STATEMENT")
+        self.assertIsInstance(self.stream.fetchone(), QueryEvent)
+        self.assertIsInstance(self.stream.fetchone(), QueryEvent)
+
+        expected_user_var_event = self.stream.fetchone()
+        self.assertIsInstance(expected_user_var_event, UserVarEvent)
+        self.assertEqual(type(expected_user_var_event.name_len), int)
+        self.assertEqual(expected_user_var_event.name, "test_user_var")
+        self.assertEqual(expected_user_var_event.value, "foo")
+        self.assertEqual(expected_user_var_event.is_null, 0)
+        self.assertEqual(expected_user_var_event.type, 0)
+        self.assertEqual(expected_user_var_event.charset, 33)
 
     def tearDown(self):
         self.execute("SET @@binlog_format='ROW'")
