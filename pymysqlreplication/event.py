@@ -440,15 +440,14 @@ class RandEvent(BinLogEvent):
     """
     RandEvent is generated every time a statement uses the RAND() function.
     Indicates the seed values to use for generating a random number with RAND() in the next statement.
-    Warning
-    - RAND_EVENT only works in statement-based logging. (need to set binlog_format as 'STATEMENT')
-    - RAND_EVENT only works when the seed number is not specified.
 
-    Attributes:
-        seed1: value for the first seed
-        seed2: value for the second seed
+    RandEvent only works in statement-based logging (need to set binlog_format as 'STATEMENT')
+    and only works when the seed number is not specified.
+
+    :ivar seed1: int - value for the first seed
+    :ivar seed2: int - value for the second seed
     """
-    
+
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         super(RandEvent, self).__init__(from_packet, event_size, table_map,
                                         ctl_connection, **kwargs)
@@ -476,12 +475,13 @@ class UserVarEvent(BinLogEvent):
     UserVarEvent is generated every time a statement uses a user variable.
     Indicates the value to use for the user variable in the next statement.
 
-    :ivar name - User variable name.
-    :ivar value - Value of the user variable.
-    :ivar type - Type of the user variable.
-    :ivar charset - The number of the character set for the user variable.
-    :ivar is_null - Non-zero if the variable value is the SQL NULL value, 0 otherwise.
-    :ivar flags - Extra flags associated with the user variable.
+    :ivar name_len: int - Length of user variable
+    :ivar name: str - User variable name
+    :ivar value: str - Value of the user variable
+    :ivar type: int - Type of the user variable
+    :ivar charset: int - The number of the character set for the user variable
+    :ivar is_null: int - Non-zero if the variable value is the SQL NULL value, 0 otherwise
+    :ivar flags: int - Extra flags associated with the user variable
     """
 
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
