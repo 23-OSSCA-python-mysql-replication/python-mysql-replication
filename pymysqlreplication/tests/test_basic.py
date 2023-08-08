@@ -1012,6 +1012,15 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
         f = open("/home/runner/work/python-mysql-replication/python-mysql-replication/.mariadb/no_encryption_key.key")
         print(f.readline())
 
+    def test_open_file_3(self):
+        import os
+        print(__file__)
+        print(os.getcwd())
+        print(os.path.relpath("/Users/geopark/PycharmProjects/python-mysql-replication/.mariadb/no_encryption_key.key"))
+
+        #f = open("/home/runner/work/python-mysql-replication/python-mysql-replication/.mariadb/no_encryption_key.key")
+        #print(f.readline())
+
     def test_start_encryption_event(self):
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
@@ -1029,8 +1038,11 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
         key_version = start_encryption_event.key_version
         nonce = start_encryption_event.nonce
 
+        from pathlib import Path
+
+        encryption_key_file_path = Path(__file__).parent.parent
         try:
-            with open("./../../.mariadb/no_encryption_key.key", "r") as key_file:
+            with open(f"{encryption_key_file_path}/.mariadb/no_encryption_key.key", "r") as key_file:
                 first_line = key_file.readline()
                 key_version_from_key_file = int(first_line.split(";")[0])
         except Exception as e:
