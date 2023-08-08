@@ -1004,6 +1004,14 @@ class GtidTests(unittest.TestCase):
 
 class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
 
+    def test_open_file(self):
+        f = open("/home/runner/work/python-mysql-replication/python-mysql-replication/README.md")
+        print(f.readline())
+
+    def test_open_file_2(self):
+        f = open("/home/runner/work/python-mysql-replication/python-mysql-replication/.mariadb/no_encryption_key.key")
+        print(f.readline())
+
     def test_start_encryption_event(self):
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
