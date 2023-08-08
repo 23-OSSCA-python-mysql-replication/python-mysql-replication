@@ -1040,7 +1040,8 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
 
         from pathlib import Path
 
-        encryption_key_file_path = Path(__file__).parent.parent
+        encryption_key_file_path = Path(__file__).parent.parent.parent
+
         try:
             with open(f"{encryption_key_file_path}/.mariadb/no_encryption_key.key", "r") as key_file:
                 first_line = key_file.readline()
