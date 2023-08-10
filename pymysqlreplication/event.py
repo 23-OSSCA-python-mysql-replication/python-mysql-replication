@@ -114,8 +114,7 @@ class MariadbBinLogCheckPointEvent(BinLogEvent):
     """
     Represents a checkpoint in a binlog event in MariaDB.
 
-    More details are available in the MariaDB Knowledge Base:
-    https://mariadb.com/kb/en/binlog_checkpoint_event/
+    For more information: `[see details] <https://mariadb.com/kb/en/binlog_checkpoint_event/>`_.
 
     :ivar filename_length:  int - The length of the filename.
     :ivar filename: str - The name of the file saved at the checkpoint.
