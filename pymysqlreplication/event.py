@@ -484,6 +484,14 @@ class UserVarEvent(BinLogEvent):
     :ivar flags: int - Extra flags associated with the user variable
     """
 
+    type_codes = {
+        0x00: 'STRING_RESULT',
+        0x01: 'REAL_RESULT',
+        0x02: 'INT_RESULT',
+        0x03: 'ROW_RESULT',
+        0x04: 'DECIMAL_RESULT',
+    }
+
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         super(UserVarEvent, self).__init__(from_packet, event_size, table_map, ctl_connection, **kwargs)
 
@@ -496,15 +504,30 @@ class UserVarEvent(BinLogEvent):
             self.type = self.packet.read_uint8()
             self.charset = self.packet.read_uint32()
             self.value_len = self.packet.read_uint32()
-            self.value = self.packet.read(self.value_len).decode()
+            if self.type == 0x00:  
+                self.value = self.packet.read(self.value_len).decode()
+            elif self.type == 0x01:  
+                self.value = str(struct.unpack('d', self.packet.read(8))[0])
+            elif self.type == 0x02:  
+                self.value = str(self.packet.read_uint_by_size(self.value_len))
+            elif self.type == 0x04:  
+                raw_decimal = self.packet.read(self.value_len)
+                self.value = binascii.hexlify(raw_decimal).decode('ascii')
+            else:
+                self.value = self.packet.read(self.value_len)
             self.flags = self.packet.read_uint8()
-            
+        else:
+            self.type = None
+            self.charset = None
+            self.value = None
+            self.flags = None
+
     def _dump(self):
         super(UserVarEvent, self)._dump()
         print("User variable name: %s" % self.name)
         print("Is NULL: %s" % ("Yes" if self.is_null else "No"))
         if not self.is_null:
-            print("Type: %s" % self.type)
+            print("Type: %s" % self.type_codes.get(self.type, 'UNKNOWN_TYPE'))
             print("Charset: %s" % self.charset)
             print("Value: %s" % self.value)
             if self.flags is not None:
