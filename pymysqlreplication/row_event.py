@@ -102,7 +102,7 @@ class RowsEvent(BinLogEvent):
         # See http://dev.mysql.com/doc/internals/en/rows-event.html
         null_bitmap = self.packet.read((BitCount(cols_bitmap) + 7) / 8)
 
-        nullBitmapIndex = 0
+        null_bitmap_index = 0
         nb_columns = len(self.columns)
         for i in range(0, nb_columns):
             column = self.columns[i]
@@ -111,20 +111,21 @@ class RowsEvent(BinLogEvent):
             zerofill = self.table_map[self.table_id].columns[i].zerofill
             fixed_binary_length = self.table_map[self.table_id].columns[i].fixed_binary_length
 
-            values[name] = self.temp(column, null_bitmap, nullBitmapIndex,
-                                     cols_bitmap, unsigned, zerofill,
-                                     fixed_binary_length, i)
+            values[name] = self.__read_values_name(column, null_bitmap, null_bitmap_index,
+                                                   cols_bitmap, unsigned, zerofill,
+                                                   fixed_binary_length, i)
 
-            nullBitmapIndex += 1
+            if BitGet(cols_bitmap, i) != 0:
+                null_bitmap_index += 1
 
         return values
 
-    def temp(self, column, null_bitmap, nullBitmapIndex, cols_bitmap, unsigned, zerofill, fixed_binary_length, i):
+    def __read_values_name(self, column, null_bitmap, null_bitmap_index, cols_bitmap, unsigned, zerofill, fixed_binary_length, i):
 
         if BitGet(cols_bitmap, i) == 0:
             return None
 
-        if self._is_null(null_bitmap, nullBitmapIndex):
+        if self._is_null(null_bitmap, null_bitmap_index):
             return None
 
         if column.type == FIELD_TYPE.TINY:
@@ -165,7 +166,6 @@ class RowsEvent(BinLogEvent):
             return struct.unpack("<d", self.packet.read(8))[0]
         elif column.type == FIELD_TYPE.VARCHAR or \
                 column.type == FIELD_TYPE.STRING:
-
             ret = self.__read_string(2, column) if column.max_length > 255 else self.__read_string(1, column)
 
             if fixed_binary_length and len(ret) < fixed_binary_length:
