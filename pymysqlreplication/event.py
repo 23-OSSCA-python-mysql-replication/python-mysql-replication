@@ -92,9 +92,9 @@ class GtidEvent(BinLogEvent):
 
 class MariadbGtidEvent(BinLogEvent):
     """
-    GTID change in binlog event in MariaDB
+    Represents GTID change in binlog event in MariaDB
 
-    for more information: `[see details] <https://mariadb.com/kb/en/gtid_event/>`_.
+    For more information: `[see details] <https://mariadb.com/kb/en/gtid_event/>`_.
 
     :ivar server_id: int - The ID of the server where the GTID event occurred.
     :ivar gtid_seq_no: int - The sequence number of the GTID event.
@@ -138,11 +138,13 @@ class MariadbBinLogCheckPointEvent(BinLogEvent):
         print('Filename:', self.filename)
 
 class RotateEvent(BinLogEvent):
-    """Change MySQL bin log file
+    """
+    Represents information for the slave to know the name of the binary log it is going to receive.
 
-    Attributes:
-        position: Position inside next binlog
-        next_binlog: Name of next binlog file
+    For more information: `[see details] <https://dev.mysql.com/doc/dev/mysql-server/latest/classbinary__log_1_1Rotate__event.html>`_.
+
+    :ivar position: int - Position inside next binlog
+    :ivar next_binlog: str - Name of next binlog file
     """
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         super(RotateEvent, self).__init__(from_packet, event_size, table_map,
@@ -158,12 +160,15 @@ class RotateEvent(BinLogEvent):
 
 
 class XAPrepareEvent(BinLogEvent):
-    """An XA prepare event is generated for a XA prepared transaction.
-    Like Xid_event it contans XID of the *prepared* transaction
+    """
+    Generated for a XA prepared transaction.
+    Like Xid_event, it contains XID of the **prepared** transaction.
 
-    Attributes:
-        one_phase: current XA transaction commit method
-        xid: serialized XID representation of XA transaction
+    For more information: `[see details] <https://dev.mysql.com/doc/refman/8.0/en/xa-statements.html>`_.
+
+    :ivar one_phase: current XA transaction commit method
+    :ivar xid_format_id: a number that identifies the format used by the gtrid and bqual values
+    :ivar xid: serialized XID representation of XA transaction (xid_gtrid + xid_bqual)
     """
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         super(XAPrepareEvent, self).__init__(from_packet, event_size, table_map,
@@ -207,10 +212,12 @@ class StopEvent(BinLogEvent):
 
 
 class XidEvent(BinLogEvent):
-    """A COMMIT event
+    """
+    Generated when COMMIT of a transaction that modifies one or more tables of an XA-capable storage engine occurs.
 
-    Attributes:
-        xid: Transaction ID for 2PC
+    For more information : `[see details] <https://mariadb.com/kb/en/xid_event/>`_. 
+
+    :ivar xid: uint - Transaction ID for 2 Phrase Commit.
     """
 
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
