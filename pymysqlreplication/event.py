@@ -92,6 +92,8 @@ class GtidEvent(BinLogEvent):
 
 class MariadbGtidEvent(BinLogEvent):
     """
+    Description
+    =========
     Represents GTID change in binlog event in MariaDB
 
     For more information: `[see details] <https://mariadb.com/kb/en/gtid_event/>`_.
@@ -120,6 +122,8 @@ class MariadbGtidEvent(BinLogEvent):
 
 class MariadbBinLogCheckPointEvent(BinLogEvent):
     """
+    Description
+    =========
     Represents a checkpoint in a binlog event in MariaDB.
 
     For more information: `[see details] <https://mariadb.com/kb/en/binlog_checkpoint_event/>`_.
@@ -139,6 +143,8 @@ class MariadbBinLogCheckPointEvent(BinLogEvent):
 
 class RotateEvent(BinLogEvent):
     """
+    Description
+    =========
     Represents information for the slave to know the name of the binary log it is going to receive.
 
     For more information: `[see details] <https://dev.mysql.com/doc/dev/mysql-server/latest/classbinary__log_1_1Rotate__event.html>`_.
@@ -158,14 +164,15 @@ class RotateEvent(BinLogEvent):
         print("Next binlog file: %s" % self.next_binlog)
         print()
 
-
 class XAPrepareEvent(BinLogEvent):
     """
+    Description
+    =========
     Generated for a XA prepared transaction.
     Like Xid_event, it contains XID of the **prepared** transaction.
 
     For more information: `[see details] <https://dev.mysql.com/doc/refman/8.0/en/xa-statements.html>`_.
-
+    
     :ivar one_phase: current XA transaction commit method
     :ivar xid_format_id: a number that identifies the format used by the gtrid and bqual values
     :ivar xid: serialized XID representation of XA transaction (xid_gtrid + xid_bqual)
@@ -213,6 +220,8 @@ class StopEvent(BinLogEvent):
 
 class XidEvent(BinLogEvent):
     """
+    Description
+    =========
     Generated when COMMIT of a transaction that modifies one or more tables of an XA-capable storage engine occurs.
 
     For more information : `[see details] <https://mariadb.com/kb/en/xid_event/>`_. 
@@ -231,23 +240,30 @@ class XidEvent(BinLogEvent):
 
 
 class HeartbeatLogEvent(BinLogEvent):
-    """A Heartbeat event
-    Heartbeats are sent by the master only if there are no unsent events in the
-    binary log file for a period longer than the interval defined by
-    MASTER_HEARTBEAT_PERIOD connection setting.
+    """
+    Description
+    ===========
+    Heartbeats are sent by the master.
+    Master sends heartbeats when there are no unsent events in the binary log file after certain period of time.
+    The interval is defined by MASTER_HEARTBEAT_PERIOD connection setting.
 
-    A mysql server will also play those to the slave for each skipped
-    events in the log. I (baloo) believe the intention is to make the slave
-    bump its position so that if a disconnection occurs, the slave only
-    reconnects from the last skipped position (see Binlog_sender::send_events
-    in sql/rpl_binlog_sender.cc). That makes 106 bytes of data for skipped
-    event in the binlog. *this is also the case with GTID replication*. To
-    mitigate such behavior, you are expected to keep the binlog small (see
-    max_binlog_size, defaults to 1G).
-    In any case, the timestamp is 0 (as in 1970-01-01T00:00:00).
+    `[see MASTER_HEARTBEAT_PERIOD] <https://dev.mysql.com/doc/refman/8.0/en/change-master-to.html>`_.
 
-    Attributes:
-        ident: Name of the current binlog
+    A Mysql server also does it for each skipped events in the log. 
+    This is because to make the slave bump its position so that 
+    if a disconnection occurs, the slave will only reconnects from the lasted skipped position. (Baloo's idea)
+
+
+    (see Binlog_sender::send_events in sql/rpl_binlog_sender.cc).  
+
+    Warning:
+    That makes 106 bytes of data for skipped event in the binlog. 
+    *this is also the case with GTID replication*.  
+    To mitigate such behavior, you are expected to keep the binlog small 
+    (see max_binlog_size, defaults to 1G).  
+    In any case, the timestamp is 0 (as in 1970-01-01T00:00:00).  
+
+    :ivar ident: Name of the current binlog
     """
 
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
