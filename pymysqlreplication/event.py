@@ -71,6 +71,7 @@ class BinLogEvent(object):
                           'indicating a potential integrity issue with the data.'
                           % self.event_type)
             self._is_event_valid = False
+        self.packet.read_bytes -= (23 + self.event_size)
         self.packet.rewind(20)
 
 
