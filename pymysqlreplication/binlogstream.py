@@ -3,6 +3,7 @@
 import pymysql
 import struct
 from distutils.version import LooseVersion
+import logging
 
 from pymysql.constants.COMMAND import COM_BINLOG_DUMP, COM_REGISTER_SLAVE
 from pymysql.cursors import DictCursor
@@ -141,7 +142,8 @@ class BinLogStreamReader(object):
                  fail_on_table_metadata_unavailable=False,
                  slave_heartbeat=None,
                  is_mariadb=False,
-                 ignore_decode_errors=False):
+                 ignore_decode_errors=False,
+                 calculate_crc=False):
         """
         Attributes:
             ctl_connection_settings: Connection settings for cluster holding
@@ -219,6 +221,7 @@ class BinLogStreamReader(object):
         self.auto_position = auto_position
         self.skip_to_timestamp = skip_to_timestamp
         self.is_mariadb = is_mariadb
+        self.__calculate_crc = calculate_crc
 
         if end_log_pos:
             self.is_past_end_log_pos = False
@@ -515,7 +518,7 @@ class BinLogStreamReader(object):
                                                self.__ignored_schemas,
                                                self.__freeze_schema,
                                                self.__fail_on_table_metadata_unavailable,
-                                               self.__ignore_decode_errors)
+                                               self.__ignore_decode_errors, self.__calculate_crc)
 
             if binlog_event.event_type == ROTATE_EVENT:
                 self.log_pos = binlog_event.event.position
