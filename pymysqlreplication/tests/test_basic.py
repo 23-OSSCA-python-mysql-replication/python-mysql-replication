@@ -1048,7 +1048,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertEqual(expected_user_var_event.charset, 33)
 
     def test_user_var_real_event(self):
-        self.execute("CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR(50), PRIMARY KEY (id))")
+        self.execute("CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data REAL, PRIMARY KEY (id))")
         self.execute("SET @test_user_var = @@timestamp")
         self.execute("INSERT INTO test (data) VALUES(@test_user_var)")
         self.execute("COMMIT")
@@ -1067,7 +1067,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertEqual(expected_user_var_event.charset, 33)
 
     def test_user_var_int_event(self):
-        self.execute("CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR(50), PRIMARY KEY (id))")
+        self.execute("CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data INT, PRIMARY KEY (id))")
         self.execute("SET @test_user_var = 5")
         self.execute("INSERT INTO test (data) VALUES(@test_user_var)")
         self.execute("COMMIT")
@@ -1080,13 +1080,13 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(expected_user_var_event, UserVarEvent)
         self.assertIsInstance(expected_user_var_event.name_len, int)
         self.assertEqual(expected_user_var_event.name, "test_user_var")
-        self.assertEqual(expected_user_var_event.value, '5')  # TODO: have to change int 5
+        self.assertEqual(expected_user_var_event.value, 5)
         self.assertEqual(expected_user_var_event.is_null, 0)
         self.assertEqual(expected_user_var_event.type, 2)
         self.assertEqual(expected_user_var_event.charset, 33)
 
-    def test_user_var_int_event(self):
-        self.execute("CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR(50), PRIMARY KEY (id))")
+    def test_user_var_decimal_event(self):
+        self.execute("CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data DECIMAL, PRIMARY KEY (id))")
         self.execute("SET @test_user_var = 5.25")
         self.execute("INSERT INTO test (data) VALUES(@test_user_var)")
         self.execute("COMMIT")
