@@ -1061,7 +1061,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(expected_user_var_event, UserVarEvent)
         self.assertIsInstance(expected_user_var_event.name_len, int)
         self.assertEqual(expected_user_var_event.name, "test_user_var")
-        self.assertIsInstance(expected_user_var_event.value, str)
+        self.assertIsInstance(expected_user_var_event.value,float)
         self.assertEqual(expected_user_var_event.is_null, 0)
         self.assertEqual(expected_user_var_event.type, 1)
         self.assertEqual(expected_user_var_event.charset, 33)
