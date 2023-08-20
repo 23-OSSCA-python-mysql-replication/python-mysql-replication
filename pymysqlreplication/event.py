@@ -525,7 +525,7 @@ class UserVarEvent(BinLogEvent):
         return struct.unpack('<d', self.packet.read(8))[0]
 
     def _read_int(self):
-        return str(self.packet.read_uint_by_size(self.value_len))
+        return struct.unpack('<q', self.packet.read(8))[0]
 
     def _read_decimal(self):
         self.precision = self.packet.read_uint8()
