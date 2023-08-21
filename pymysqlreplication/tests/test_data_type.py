@@ -3,6 +3,7 @@
 import copy
 import platform
 import sys
+import time
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -30,7 +31,19 @@ def to_binary_dict(d):
     return dict([(k.encode(), encode_value(v)) for (k, v) in d.items()])
 
 
+def get_timezone():
+    offset_minutes = -time.timezone // 60
+    offset_hours = offset_minutes // 60
+    offset_minutes %= 60
+    timezone_offset = f'{offset_hours:+03}:{offset_minutes:02}'
+    return timezone_offset
+
+
 class TestDataType(base.PyMySQLReplicationTestCase):
+    def setUp(self):
+        super(TestDataType, self).setUp()
+        self.execute(f"SET SESSION time_zone = '{get_timezone()}';")
+
     def ignoredEvents(self):
         return [GtidEvent]
 
