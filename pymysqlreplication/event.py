@@ -485,14 +485,6 @@ class UserVarEvent(BinLogEvent):
     :ivar flags: int - Extra flags associated with the user variable
     """
 
-    type_codes = {
-        0x00: 'STRING_RESULT',
-        0x01: 'REAL_RESULT',
-        0x02: 'INT_RESULT',
-        0x03: 'ROW_RESULT',
-        0x04: 'DECIMAL_RESULT',
-    }
-
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         super(UserVarEvent, self).__init__(from_packet, event_size, table_map, ctl_connection, **kwargs)
 
@@ -500,20 +492,20 @@ class UserVarEvent(BinLogEvent):
         self.name_len = self.packet.read_uint32()
         self.name = self.packet.read(self.name_len).decode()
         self.is_null = self.packet.read_uint8()
+        self.type_to_codes_and_method = {
+            0x00: ['STRING_RESULT', self._read_string],
+            0x01: ['REAL_RESULT', self._read_real],
+            0x02: ['INT_RESULT', self._read_int],
+            0x03: ['ROW_RESULT', self._read_default],
+            0x04: ['DECIMAL_RESULT', self._read_decimal]
+        }
 
         if not self.is_null:
             self.type = self.packet.read_uint8()
             self.charset = self.packet.read_uint32()
             self.value_len = self.packet.read_uint32()
 
-            type_to_method = {
-                0x00: self._read_string,
-                0x01: self._read_real,
-                0x02: self._read_int,
-                0x04: self._read_decimal
-            }
-
-            self.value = type_to_method.get(self.type, self._read_default)()
+            self.value = self.type_to_codes_and_method.get(self.type, ["UNKNOWN_RESULT", self._read_default])[1]()
             self.flags = self.packet.read_uint8()
         else:
             self.type, self.charset, self.value, self.flags = None, None, None, None
@@ -562,14 +554,14 @@ class UserVarEvent(BinLogEvent):
         res += str(value)
 
         for _ in range(uncomp_integral):
-            value = struct.unpack('>i', raw_decimal[pointer:pointer+4])[0] ^ mask
+            value = struct.unpack('>i', raw_decimal[pointer:pointer + 4])[0] ^ mask
             res += '%09d' % value
             pointer += 4
 
         res += "."
 
         for _ in range(uncomp_fractional):
-            value = struct.unpack('>i', raw_decimal[pointer:pointer+4])[0] ^ mask
+            value = struct.unpack('>i', raw_decimal[pointer:pointer + 4])[0] ^ mask
             res += '%09d' % value
             pointer += 4
 
@@ -578,17 +570,15 @@ class UserVarEvent(BinLogEvent):
             res += '%0*d' % (comp_fractional, value)
 
         return decimal.Decimal(res)
-    
     def _dump(self):
         super(UserVarEvent, self)._dump()
         print("User variable name: %s" % self.name)
         print("Is NULL: %s" % ("Yes" if self.is_null else "No"))
         if not self.is_null:
-            print("Type: %s" % self.type_codes.get(self.type, 'UNKNOWN_TYPE'))
+            print("Type: %s" % self.type_to_codes_and_method.get(self.type, ['UNKNOWN_TYPE'])[0])
             print("Charset: %s" % self.charset)
             print("Value: %s" % self.value)
-            if self.flags is not None:
-                print("Flags: %s" % self.flags)
+            print("Flags: %s" % self.flags)
 
 class NotImplementedEvent(BinLogEvent):
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
