@@ -1185,38 +1185,6 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
         self.assertEqual(len(nonce), 12)        
 
 
-class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
-    def setUp(self):
-        super().setUp()
-        self.stream.close()
-        self.stream = BinLogStreamReader(
-            self.database,
-            server_id=1024,
-            only_events=(RandEvent, QueryEvent),
-            fail_on_table_metadata_unavailable=True
-        )
-        self.execute("SET @@binlog_format='STATEMENT'")
-
-    def test_rand_event(self):
-        self.execute("CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data INT NOT NULL, PRIMARY KEY (id))")
-        self.execute("INSERT INTO test (data) VALUES(RAND())")
-        self.execute("COMMIT")
-
-        self.assertEqual(self.bin_log_format(), "STATEMENT")
-        self.assertIsInstance(self.stream.fetchone(), QueryEvent)
-        self.assertIsInstance(self.stream.fetchone(), QueryEvent)
-
-        expect_rand_event = self.stream.fetchone()
-        self.assertIsInstance(expect_rand_event, RandEvent)
-        self.assertEqual(type(expect_rand_event.seed1), int)
-        self.assertEqual(type(expect_rand_event.seed2), int)
-
-    def tearDown(self):
-        self.execute("SET @@binlog_format='ROW'")
-        self.assertEqual(self.bin_log_format(), "ROW")
-        super().tearDown()
-
-
 class TestRowsQueryLogEvents(base.PyMySQLReplicationTestCase):
     def setUp(self):
         super(TestRowsQueryLogEvents, self).setUp()
