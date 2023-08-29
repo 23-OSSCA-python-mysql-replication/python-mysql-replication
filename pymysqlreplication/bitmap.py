@@ -1,6 +1,8 @@
+from typing import List
+
 # -*- coding: utf-8 -*-
 
-bitCountInByte = [
+bitCountInByte: List[int] = [
     0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
     1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
     1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
@@ -19,18 +21,21 @@ bitCountInByte = [
     4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8,
 ]
 
+
 # Calculate total bit counts in a bitmap
-def BitCount(bitmap):
+def BitCount(bitmap: bytes) -> int:
     n = 0
     for i in range(0, len(bitmap)):
         bit = bitmap[i]
         if type(bit) is str:
             bit = ord(bit)
         n += bitCountInByte[bit]
+
     return n
 
+
 # Get the bit set at offset position in bitmap
-def BitGet(bitmap, position):
+def BitGet(bitmap: bytes, position: int) -> int:
     bit = bitmap[int(position / 8)]
     if type(bit) is str:
         bit = ord(bit)
