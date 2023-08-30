@@ -2,7 +2,7 @@
 from typing import List
 from typing import Dict
 from typing import Optional
-from column import Column
+from pymysqlreplication.column import Column
 
 
 class Table(object):
