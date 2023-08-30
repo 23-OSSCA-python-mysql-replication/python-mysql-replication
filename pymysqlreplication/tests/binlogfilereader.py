@@ -13,6 +13,7 @@ from typing import Optional, List, Type, Union, Iterator, IO
 
 class SimpleBinLogFileReader(object):
     '''Read binlog files'''
+    
     _expected_magic = b'\xfebin'
 
     def __init__(self, file_path: str, only_events: Optional[List[BinLogEvent]] = None) -> None:
