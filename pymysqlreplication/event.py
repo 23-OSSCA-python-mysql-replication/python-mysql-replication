@@ -99,7 +99,7 @@ class BinLogEvent(object):
             value = self.packet.read_int_be_by_size(size) ^ mask
             res += '%0*d' % (comp_fractional, value)
 
-        return float(decimal.Decimal(res))
+        return decimal.Decimal(res)
 
 class GtidEvent(BinLogEvent):
     """GTID change in binlog event
@@ -594,7 +594,7 @@ class UserVarEvent(BinLogEvent):
         return self.packet.read(self.value_len)
 
     def _read_new_decimal(self, precision, decimals):
-        return super()._read_new_decimal(precision, decimals)
+        return float(super()._read_new_decimal(precision, decimals))
 
     def _dump(self):
         super(UserVarEvent, self)._dump()
