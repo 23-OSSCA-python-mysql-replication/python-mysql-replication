@@ -5,7 +5,8 @@ import struct
 import binascii
 from copy import deepcopy
 from io import BytesIO
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union, Set
+
 
 def overlap(i1: Tuple[int, int], i2: Tuple[int, int]) -> bool:
     return i1[0] < i2[1] and i1[1] > i2[0]
@@ -320,7 +321,7 @@ class Gtid(object):
 
 class GtidSet(object):
     """Represents a set of Gtid"""
-    def __init__(self, gtid_set):
+    def __init__(self, gtid_set: Optional[Union[None, str, Set[Gtid], List[Gtid], Gtid]] = None) -> None:
         """
         Construct a GtidSet initial state depends of the nature of `gtid_set` param.
 
@@ -336,21 +337,21 @@ class GtidSet(object):
           - Exception: if Gtid interval are either malformated or overlapping
         """
 
-        def _to_gtid(element):
+        def _to_gtid(element: str) -> Gtid:
             if isinstance(element, Gtid):
                 return element
             return Gtid(element.strip(' \n'))
 
         if not gtid_set:
-            self.gtids = []
+            self.gtids: List[Gtid] = []
         elif isinstance(gtid_set, (list, set)):
-            self.gtids = [_to_gtid(x) for x in gtid_set]
+            self.gtids: List[Gtid] = [_to_gtid(x) for x in gtid_set]
         else:
-            self.gtids = [Gtid(x.strip(' \n')) for x in gtid_set.split(',')]
+            self.gtids: List[Gtid] = [Gtid(x.strip(' \n')) for x in gtid_set.split(',')]
 
-    def merge_gtid(self, gtid):
+    def merge_gtid(self, gtid: Gtid) -> None:
         """Insert a Gtid in current GtidSet."""
-        new_gtids = []
+        new_gtids: List[Gtid] = []
         for existing in self.gtids:
             if existing.sid == gtid.sid:
                 new_gtids.append(existing + gtid)
@@ -360,7 +361,7 @@ class GtidSet(object):
             new_gtids.append(gtid)
         self.gtids = new_gtids
 
-    def __contains__(self, other):
+    def __contains__(self, other: Union['GtidSet', Gtid]) -> bool:
         """
         Test if self contains other, could be a GtidSet or a Gtid.
 
@@ -374,7 +375,7 @@ class GtidSet(object):
             return any(other in x for x in self.gtids)
         raise NotImplementedError
 
-    def __add__(self, other):
+    def __add__(self, other: Union['GtidSet', Gtid]) -> 'GtidSet':
         """
         Merge current instance with an other GtidSet or with a Gtid alone.
 
@@ -395,21 +396,21 @@ class GtidSet(object):
 
         raise NotImplementedError
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Returns a comma separated string of gtids.
         """
         return ','.join(str(x) for x in self.gtids)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<GtidSet %r>' % self.gtids
 
     @property
-    def encoded_length(self):
+    def encoded_length(self) -> int:
         return (8 +  # n_sids
                 sum(x.encoded_length for x in self.gtids))
 
-    def encoded(self):
+    def encoded(self) -> bytes:
         """Encode a GtidSet in binary
         Bytes are in **little endian**.
 
@@ -432,7 +433,7 @@ class GtidSet(object):
     encode = encoded
 
     @classmethod
-    def decode(cls, payload):
+    def decode(cls, payload: BytesIO) -> 'GtidSet':
         """Decode a GtidSet from binary.
 
         :param BytesIO payload to decode
@@ -443,5 +444,5 @@ class GtidSet(object):
 
         return cls([Gtid.decode(payload) for _ in range(0, n_sid)])
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'GtidSet') -> bool:
         return self.gtids == other.gtids
