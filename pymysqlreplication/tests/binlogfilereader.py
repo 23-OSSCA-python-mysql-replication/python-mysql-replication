@@ -11,7 +11,7 @@ from pymysqlreplication.row_event import TableMapEvent
 from pymysqlreplication.row_event import WriteRowsEvent
 from typing import Optional, List, Type, Union, Iterator, IO
 
-class SimpleBinLogFileReader:
+class SimpleBinLogFileReader(object):
     _expected_magic = b'\xfebin'
 
     def __init__(self, file_path: str, only_events: Optional[List[BinLogEvent]] = None) -> None:
