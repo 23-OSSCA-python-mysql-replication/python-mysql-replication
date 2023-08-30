@@ -35,20 +35,6 @@ class BinLogEvent(object):
         self._processed: bool = True
         self.complete: bool = True
 
-        self.packet = from_packet
-        self.table_map = table_map
-        self.event_type = self.packet.event_type
-        self.timestamp = self.packet.timestamp
-        self.event_size = event_size
-        self._ctl_connection = ctl_connection
-        self.mysql_version = mysql_version
-        self._fail_on_table_metadata_unavailable = fail_on_table_metadata_unavailable
-        self._ignore_decode_errors = ignore_decode_errors
-        # The event have been fully processed, if processed is false
-        # the event will be skipped
-        self._processed = True
-        self.complete = True
-
     def _read_table_id(self):
         # Table ID is 6 byte
         # pad little-endian number
