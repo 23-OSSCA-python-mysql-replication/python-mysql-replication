@@ -134,11 +134,11 @@ class MariadbGtidEvent(BinLogEvent):
 
         super().__init__(from_packet, event_size, table_map, ctl_connection, **kwargs)
 
-        self.server_id = self.packet.server_id
-        self.gtid_seq_no = self.packet.read_uint64()
-        self.domain_id = self.packet.read_uint32()
-        self.flags = self.packet.read_uint8()
-        self.gtid = "%d-%d-%d" % (self.domain_id, self.server_id, self.gtid_seq_no)
+        self.server_id: int = self.packet.server_id
+        self.gtid_seq_no: int = self.packet.read_uint64()
+        self.domain_id: int = self.packet.read_uint32()
+        self.flags: int = self.packet.read_uint8()
+        self.gtid: str = "%d-%d-%d" % (self.domain_id, self.server_id, self.gtid_seq_no)
 
     def _dump(self):
         super()._dump()
