@@ -7,7 +7,7 @@ from pymysqlreplication.column import Column
 
 class Table(object):
     def __init__(self, column_schemas: List[Dict[str, str]], table_id: int, schema: str, table: str,
-                 columns: List[Column], primary_key: Optional[List[str]]):
+                 columns: List[Column], primary_key: Optional[List[str]] = None):
         if primary_key is None:
             primary_key = [c.data["name"] for c in columns if c.data["is_primary"]]
             if len(primary_key) == 0:
