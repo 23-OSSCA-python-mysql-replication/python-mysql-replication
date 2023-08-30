@@ -52,6 +52,55 @@ class BinLogEvent(object):
         """Core data dumped for the event"""
         pass
 
+    def _read_new_decimal(self, precision, decimals):
+        """
+        Read MySQL's new decimal format introduced in MySQL 5.
+        This project was a great source of inspiration for understanding this storage format.
+        (https://github.com/jeremycole/mysql_binlog)
+        """
+        digits_per_integer = 9
+        compressed_bytes = [0, 1, 1, 2, 2, 3, 3, 4, 4, 4]
+        integral = (precision - decimals)
+        uncomp_integral = int(integral / digits_per_integer)
+        uncomp_fractional = int(decimals / digits_per_integer)
+        comp_integral = integral - (uncomp_integral * digits_per_integer)
+        comp_fractional = decimals - (uncomp_fractional * digits_per_integer)
+
+        # Support negative
+        # The sign is encoded in the high bit of the byte
+        # But this bit can also be used in the value
+
+        value = self.packet.read_uint8()
+        if value & 0x80 != 0:
+            res = ""
+            mask = 0
+        else:
+            mask = -1
+            res = "-"
+        self.packet.unread(struct.pack('<B', value ^ 0x80))
+
+        size = compressed_bytes[comp_integral]
+        if size > 0:
+            value = self.packet.read_int_be_by_size(size) ^ mask
+            res += str(value)
+
+        for i in range(0, uncomp_integral):
+            value = struct.unpack('>i', self.packet.read(4))[0] ^ mask
+            res += '%09d' % value
+
+        res += "."
+
+        for i in range(0, uncomp_fractional):
+            value = struct.unpack('>i', self.packet.read(4))[0] ^ mask
+            res += '%09d' % value
+
+        size = compressed_bytes[comp_fractional]
+        if size > 0:
+            value = self.packet.read_int_be_by_size(size) ^ mask
+            res += '%0*d' % (comp_fractional, value)
+
+        return float(decimal.Decimal(res))
+
 class GtidEvent(BinLogEvent):
     """GTID change in binlog event
     """
@@ -539,105 +588,13 @@ class UserVarEvent(BinLogEvent):
     def _read_decimal(self):
         self.precision = self.packet.read_uint8()
         self.decimals = self.packet.read_uint8()
-        # raw_decimal = self.packet.read(self.value_len)
-        # return self._parse_decimal_from_bytes(raw_decimal, self.precision, self.decimals)
-        return self.__read_new_decimal(self.precision, self.decimals)
+        return self._read_new_decimal(self.precision, self.decimals)
 
     def _read_default(self):
         return self.packet.read(self.value_len)
 
-    @staticmethod
-    def _parse_decimal_from_bytes(raw_decimal, precision, decimals):
-        digits_per_integer = 9
-        compressed_bytes = [0, 1, 1, 2, 2, 3, 3, 4, 4, 4]
-        integral = precision - decimals
-
-        uncomp_integral, comp_integral = divmod(integral, digits_per_integer)
-        uncomp_fractional, comp_fractional = divmod(decimals, digits_per_integer)
-
-        res = "-" if not raw_decimal[0] & 0x80 else ""
-        mask = -1 if res == "-" else 0
-        raw_decimal = bytearray([raw_decimal[0] ^ 0x80]) + raw_decimal[1:]
-
-        def decode_decimal_decompress_value(comp_indx, data, mask):
-            size = compressed_bytes[comp_indx]
-            if size > 0:
-                databuff = bytearray(data[:size])
-                for i in range(size):
-                    databuff[i] ^= mask
-                return size, int.from_bytes(databuff, byteorder='big')
-            return 0, 0
-
-        pointer, value = decode_decimal_decompress_value(comp_integral, raw_decimal, mask)
-        res += str(value)
-
-        for _ in range(uncomp_integral):
-            value = struct.unpack('>i', raw_decimal[pointer:pointer + 4])[0] ^ mask
-            res += '%09d' % value
-            pointer += 4
-
-        res += "."
-
-        for _ in range(uncomp_fractional):
-            value = struct.unpack('>i', raw_decimal[pointer:pointer + 4])[0] ^ mask
-            res += '%09d' % value
-            pointer += 4
-
-        size, value = decode_decimal_decompress_value(comp_fractional, raw_decimal[pointer:], mask)
-        if size > 0:
-            res += '%0*d' % (comp_fractional, value)
-
-        return decimal.Decimal(res)
-
-    def __read_new_decimal(self, precision, decimals):
-        """Read MySQL's new decimal format introduced in MySQL 5"""
-
-        # This project was a great source of inspiration for
-        # understanding this storage format.
-        # https://github.com/jeremycole/mysql_binlog
-
-        digits_per_integer = 9
-        compressed_bytes = [0, 1, 1, 2, 2, 3, 3, 4, 4, 4]
-        integral = (precision - decimals)
-        uncomp_integral = int(integral / digits_per_integer)
-        uncomp_fractional = int(decimals / digits_per_integer)
-        comp_integral = integral - (uncomp_integral * digits_per_integer)
-        comp_fractional = decimals - (uncomp_fractional * digits_per_integer)
-
-        # Support negative
-        # The sign is encoded in the high bit of the byte
-        # But this bit can also be used in the value
-
-        value = self.packet.read_uint8()
-        if value & 0x80 != 0:
-            res = ""
-            mask = 0
-        else:
-            mask = -1
-            res = "-"
-        self.packet.unread(struct.pack('<B', value ^ 0x80))
-
-        size = compressed_bytes[comp_integral]
-        if size > 0:
-            value = self.packet.read_int_be_by_size(size) ^ mask
-            res += str(value)
-
-        for i in range(0, uncomp_integral):
-            value = struct.unpack('>i', self.packet.read(4))[0] ^ mask
-            res += '%09d' % value
-
-        res += "."
-
-        for i in range(0, uncomp_fractional):
-            value = struct.unpack('>i', self.packet.read(4))[0] ^ mask
-            res += '%09d' % value
-
-        size = compressed_bytes[comp_fractional]
-        if size > 0:
-            value = self.packet.read_int_be_by_size(size) ^ mask
-            res += '%0*d' % (comp_fractional, value)
-
-        return float(decimal.Decimal(res))
+    def _read_new_decimal(self, precision, decimals):
+        return super()._read_new_decimal(precision, decimals)
 
     def _dump(self):
         super(UserVarEvent, self)._dump()
