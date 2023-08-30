@@ -9,12 +9,13 @@ from pymysqlreplication.table import Table
 from pymysqlreplication.event import GtidEvent
 
 from pymysqlreplication.tests import base
+from typing import List
 
 __all__ = ["TestDataObjects"]
 
 
 class TestDataObjects(base.PyMySQLReplicationTestCase):
-    def ignoredEvents(self):
+    def ignoredEvents(self) -> List[GtidEvent]:
         return [GtidEvent]
 
     def test_column_is_primary(self):
