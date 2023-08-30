@@ -3,8 +3,12 @@
 import binascii
 import struct
 import datetime
+import pymysql
+from pymysql.protocol import MysqlPacket
+from typing import Dict, Tuple, Type
 from pymysqlreplication.constants.STATUS_VAR_KEY import *
 from pymysqlreplication.exceptions import StatusVariableMismatch
+from pymysqlreplication.table import Table
 
 
 class BinLogEvent(object):
@@ -17,6 +21,20 @@ class BinLogEvent(object):
                  freeze_schema=False,
                  fail_on_table_metadata_unavailable=False,
                  ignore_decode_errors=False):
+        self.packet: Type[MysqlPacket] = from_packet
+        self.table_map: Dict[int, Table] = table_map
+        self.event_type: int = self.packet.event_type
+        self.timestamp: int = self.packet.timestamp
+        self.event_size: int = event_size
+        self._ctl_connection: pymysql.connections.Connection = ctl_connection
+        self.mysql_version: Tuple[int, int ,int] = mysql_version
+        self._fail_on_table_metadata_unavailable: bool = fail_on_table_metadata_unavailable
+        self._ignore_decode_errors: bool = ignore_decode_errors
+        # The event have been fully processed, if processed is false
+        # the event will be skipped
+        self._processed: bool = True
+        self.complete: bool = True
+
         self.packet = from_packet
         self.table_map = table_map
         self.event_type = self.packet.event_type
