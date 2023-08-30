@@ -5,7 +5,7 @@ import struct
 import datetime
 import pymysql
 from pymysql.protocol import MysqlPacket
-from typing import Dict, Tuple, Type
+from typing import Dict, List, Tuple, Type
 from pymysqlreplication.constants.STATUS_VAR_KEY import *
 from pymysqlreplication.exceptions import StatusVariableMismatch
 from pymysqlreplication.table import Table
@@ -73,7 +73,7 @@ class BinLogEvent(object):
 class GtidEvent(BinLogEvent):
     """GTID change in binlog event
 
-    For more information : `[GTID] <https://mariadb.com/kb/en/gtid/>`_ `[see also] <https://dev.mysql.com/doc/dev/mysql-server/latest/classbinary__log_1_1Gtid__event.html>`_ 
+    For more information : `[see GtidEvent] <https://mariadb.com/kb/en/gtid/>`_ `[see also] <https://dev.mysql.com/doc/dev/mysql-server/latest/classbinary__log_1_1Gtid__event.html>`_ 
 
     :ivar commit_flag: 1byte - 00000001 = Transaction may have changes logged with SBR.
             In 5.6, 5.7.0-5.7.18, and 8.0.0-8.0.1, this flag is always set. Starting in 5.7.19 and 8.0.2, this flag is cleared if the transaction only contains row events. It is set if any part of the transaction is written in statement format.
@@ -122,7 +122,7 @@ class MariadbGtidEvent(BinLogEvent):
     """
     GTID(Global Transaction Identifier) change in binlog event in MariaDB
 
-    for more information: `[see details] <https://mariadb.com/kb/en/gtid_event/>`_.
+    for more information: `[see MariadbGtidEvent] <https://mariadb.com/kb/en/gtid_event/>`_.
 
     :ivar server_id: int - The ID of the server where the GTID event occurred.
     :ivar gtid_seq_no: int - The sequence number of the GTID event.
@@ -149,10 +149,9 @@ class MariadbBinLogCheckPointEvent(BinLogEvent):
     """
     Represents a checkpoint in a binlog event in MariaDB.
 
-    More details are available in the MariaDB Knowledge Base:
-    https://mariadb.com/kb/en/binlog_checkpoint_event/
+    for more information: `[see MaridbBinLogCheckPointEvent] <https://mariadb.com/kb/en/binlog_checkpoint_event/>`_
 
-    :ivar filename_length:  int - The length of the filename.
+    :ivar filename_length: int - The length of the filename.
     :ivar filename: str - The name of the file saved at the checkpoint.
     """
 
@@ -172,11 +171,11 @@ class MariadbAnnotateRowsEvent(BinLogEvent):
     https://mariadb.com/kb/en/annotate_rows_event/
 
     Attributes:
-        sql_statement: The SQL statement
+        sql_statement: str - The SQL statement
     """
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         super().__init__(from_packet, event_size, table_map, ctl_connection, **kwargs)
-        self.sql_statement = self.packet.read(event_size)
+        self.sql_statement: str = self.packet.read(event_size)
 
     def _dump(self):
         super()._dump()
@@ -184,18 +183,15 @@ class MariadbAnnotateRowsEvent(BinLogEvent):
 
 class MariadbGtidListEvent(BinLogEvent):
     """
-    GTID List event
-    https://mariadb.com/kb/en/gtid_list_event/
+    for more information: `[see MariadbGtidListEvent] <https://mariadb.com/kb/en/gtid_list_event/>`_
 
-    Attributes:
-        gtid_length: Number of GTIDs
-        gtid_list: list of 'MariadbGtidObejct'
+    :ivar gtid_length: int - Number of GTIDs
+    :ivar gtid_list: List - list of 'MariadbGtidObejct'
 
-        'MariadbGtidObejct' Attributes:
-            domain_id: Replication Domain ID
-            server_id: Server_ID
-            gtid_seq_no: GTID sequence
-            gtid: 'domain_id'+ 'server_id' + 'gtid_seq_no'
+    :ivar domain_id: int - Replication Domain ID (MariadbGtidObject)
+    :ivar server_id: int -Server_ID (MariadbGtidObject)
+    :ivar gtid_seq_no: int - GTID sequence (MariadbGtidObject)
+    :ivar gtid: str - 'domain_id'+ 'server_id' + 'gtid_seq_no' (MariadbGtidObject)
     """
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
 
@@ -207,14 +203,14 @@ class MariadbGtidListEvent(BinLogEvent):
             """
             def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
                 super(MariadbGtidObejct, self).__init__(from_packet, event_size, table_map, ctl_connection, **kwargs)
-                self.domain_id = self.packet.read_uint32()
-                self.server_id = self.packet.read_uint32()
-                self.gtid_seq_no = self.packet.read_uint64()
-                self.gtid = "%d-%d-%d" % (self.domain_id, self.server_id, self.gtid_seq_no)
+                self.domain_id: int = self.packet.read_uint32()
+                self.server_id: int = self.packet.read_uint32()
+                self.gtid_seq_no: int = self.packet.read_uint64()
+                self.gtid: str = "%d-%d-%d" % (self.domain_id, self.server_id, self.gtid_seq_no)
 
 
-        self.gtid_length = self.packet.read_uint32()
-        self.gtid_list = [MariadbGtidObejct(from_packet, event_size, table_map, ctl_connection, **kwargs) for i in range(self.gtid_length)]
+        self.gtid_length: int = self.packet.read_uint32()
+        self.gtid_list: List[MariadbGtidObejct] = [MariadbGtidObejct(from_packet, event_size, table_map, ctl_connection, **kwargs) for i in range(self.gtid_length)]
 
 
 class RotateEvent(BinLogEvent):
