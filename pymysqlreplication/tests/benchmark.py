@@ -48,11 +48,11 @@ database = {
     "db": "pymysqlreplication_test"
 }
 
-conn = pymysql.connect(**database)
+conn: Connection = pymysql.connect(**database)
 
 execute(conn, "DROP DATABASE IF EXISTS pymysqlreplication_test")
 execute(conn, "CREATE DATABASE pymysqlreplication_test")
-conn = pymysql.connect(**database)
+conn: Connection = pymysql.connect(**database)
 execute(conn, "CREATE TABLE test (i INT) ENGINE = MEMORY")
 execute(conn, "INSERT INTO test VALUES(1)")
 execute(conn, "CREATE TABLE test2 (i INT) ENGINE = MEMORY")
