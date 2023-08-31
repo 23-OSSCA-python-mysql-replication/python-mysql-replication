@@ -11,15 +11,19 @@ import random
 import os
 from pymysqlreplication import BinLogStreamReader
 from pymysqlreplication.row_event import *
+from pymysql.connections import Connection
+from pymysql.cursors import Cursor
+
+from typing import Any
 import cProfile
 
 
-def execute(con, query):
+def execute(con: Connection, query: str) -> Cursor:
     c = con.cursor()
     c.execute(query)
     return c
 
-def consume_events():
+def consume_events() -> None:
     stream = BinLogStreamReader(connection_settings=database,
                                 server_id=3,
                                 resume_stream=False,
@@ -44,11 +48,11 @@ database = {
     "db": "pymysqlreplication_test"
 }
 
-conn = pymysql.connect(**database)
+conn: Connection = pymysql.connect(**database)
 
 execute(conn, "DROP DATABASE IF EXISTS pymysqlreplication_test")
 execute(conn, "CREATE DATABASE pymysqlreplication_test")
-conn = pymysql.connect(**database)
+conn: Connection = pymysql.connect(**database)
 execute(conn, "CREATE TABLE test (i INT) ENGINE = MEMORY")
 execute(conn, "INSERT INTO test VALUES(1)")
 execute(conn, "CREATE TABLE test2 (i INT) ENGINE = MEMORY")
