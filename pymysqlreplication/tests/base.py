@@ -5,6 +5,8 @@ import os
 import sys
 from pymysql.cursors import Cursor
 import pymysql
+from pymysql import Connection
+from typing import Optional
 
 from pymysqlreplication import BinLogStreamReader
 
@@ -22,7 +24,7 @@ class PyMySQLReplicationTestCase(base):
 
     def setUp(self) -> None:
         # default
-        self.database = {
+        self.database: dict = {
             "host": os.environ.get("MYSQL_5_7") or "localhost",
             "user": "root",
             "passwd": "",
@@ -32,7 +34,7 @@ class PyMySQLReplicationTestCase(base):
             "db": "pymysqlreplication_test",
         }
 
-        self.conn_control = None
+        self.conn_control: Optional[Connection] = None
         db = copy.copy(self.database)
         db["db"] = None
         self.connect_conn_control(db)
@@ -40,10 +42,10 @@ class PyMySQLReplicationTestCase(base):
         self.execute("CREATE DATABASE pymysqlreplication_test")
         db = copy.copy(self.database)
         self.connect_conn_control(db)
-        self.stream = None
+        self.stream: Optional[BinLogStreamReader] = None
         self.resetBinLog()
         self.isMySQL56AndMore()
-        self.__is_mariaDB = None
+        self.__is_mariaDB: Optional[bool] = None
 
     def getMySQLVersion(self) -> str:
         """Return the MySQL version of the server
@@ -67,7 +69,7 @@ class PyMySQLReplicationTestCase(base):
 
     def isMariaDB(self) -> bool:
         if self.__is_mariaDB is None:
-            self.__is_mariaDB = (
+            self.__is_mariaDB: bool = (
                 "MariaDB" in self.execute("SELECT VERSION()").fetchone()[0]
             )
         return self.__is_mariaDB
@@ -81,13 +83,13 @@ class PyMySQLReplicationTestCase(base):
     def connect_conn_control(self, db) -> None:
         if self.conn_control is not None:
             self.conn_control.close()
-        self.conn_control = pymysql.connect(**db)
+        self.conn_control: Connection = pymysql.connect(**db)
 
     def tearDown(self) -> None:
         self.conn_control.close()
-        self.conn_control = None
+        self.conn_control: Optional[Connection] = None
         self.stream.close()
-        self.stream = None
+        self.stream: Optional[BinLogStreamReader] = None
 
     def execute(self, query: str) -> Cursor:
         c = self.conn_control.cursor()
@@ -103,7 +105,7 @@ class PyMySQLReplicationTestCase(base):
         self.execute("RESET MASTER")
         if self.stream is not None:
             self.stream.close()
-        self.stream = BinLogStreamReader(
+        self.stream: BinLogStreamReader = BinLogStreamReader(
             self.database, server_id=1024, ignored_events=self.ignoredEvents()
         )
 
@@ -139,7 +141,7 @@ class PyMySQLReplicationMariaDbTestCase(PyMySQLReplicationTestCase):
             "db": "pymysqlreplication_test",
         }
 
-        self.conn_control = None
+        self.conn_control: Optional[Connection] = None
         db = copy.copy(self.database)
         db["db"] = None
         self.connect_conn_control(db)
@@ -147,7 +149,7 @@ class PyMySQLReplicationMariaDbTestCase(PyMySQLReplicationTestCase):
         self.execute("CREATE DATABASE pymysqlreplication_test")
         db = copy.copy(self.database)
         self.connect_conn_control(db)
-        self.stream = None
+        self.stream: Optional[BinLogStreamReader] = None
         self.resetBinLog()
 
     def bin_log_basename(self) -> str:
