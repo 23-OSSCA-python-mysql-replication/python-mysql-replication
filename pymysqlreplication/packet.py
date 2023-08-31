@@ -343,7 +343,7 @@ class BinLogPacketWrapper(object):
     def unpack_uint16(self, n: bytes) -> int:
         return struct.unpack('<H', n[0:2])[0]
 
-    def unpack_int24(self, n: bytes) -> Optional[str, Tuple[str, int]]:
+    def unpack_int24(self, n: bytes) -> Optional[Union[int, Tuple[str, int]]]:
         try:
             return struct.unpack('B', n[0])[0] \
                 + (struct.unpack('B', n[1])[0] << 8) \
@@ -351,7 +351,7 @@ class BinLogPacketWrapper(object):
         except TypeError:
             return n[0] + (n[1] << 8) + (n[2] << 16)
 
-    def unpack_int32(self, n: bytes) -> Optional[str, Tuple[str, int]]:
+    def unpack_int32(self, n: bytes) -> Optional[Union[int, Tuple[str, int]]]:
         try:
             return struct.unpack('B', n[0])[0] \
                 + (struct.unpack('B', n[1])[0] << 8) \
