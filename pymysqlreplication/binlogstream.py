@@ -39,7 +39,7 @@ class ReportSlave(object):
     """Represent the values that you may report when connecting as a slave
     to a master. SHOW SLAVE HOSTS related"""
 
-    def __init__(self, value: Union[str, tuple[str, str, str, int]]) -> None:
+    def __init__(self, value: Union[str, Tuple[str, str, str, int]]) -> None:
         """
         Attributes:
             value: string or tuple
