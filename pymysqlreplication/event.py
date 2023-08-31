@@ -53,55 +53,6 @@ class BinLogEvent(object):
         """Core data dumped for the event"""
         pass
 
-    def _read_new_decimal(self, precision, decimals):
-        """
-        Read MySQL's new decimal format introduced in MySQL 5.
-        This project was a great source of inspiration for understanding this storage format.
-        (https://github.com/jeremycole/mysql_binlog)
-        """
-        digits_per_integer = 9
-        compressed_bytes = [0, 1, 1, 2, 2, 3, 3, 4, 4, 4]
-        integral = (precision - decimals)
-        uncomp_integral = int(integral / digits_per_integer)
-        uncomp_fractional = int(decimals / digits_per_integer)
-        comp_integral = integral - (uncomp_integral * digits_per_integer)
-        comp_fractional = decimals - (uncomp_fractional * digits_per_integer)
-
-        # Support negative
-        # The sign is encoded in the high bit of the byte
-        # But this bit can also be used in the value
-
-        value = self.packet.read_uint8()
-        if value & 0x80 != 0:
-            res = ""
-            mask = 0
-        else:
-            mask = -1
-            res = "-"
-        self.packet.unread(struct.pack('<B', value ^ 0x80))
-
-        size = compressed_bytes[comp_integral]
-        if size > 0:
-            value = self.packet.read_int_be_by_size(size) ^ mask
-            res += str(value)
-
-        for i in range(0, uncomp_integral):
-            value = struct.unpack('>i', self.packet.read(4))[0] ^ mask
-            res += '%09d' % value
-
-        res += "."
-
-        for i in range(0, uncomp_fractional):
-            value = struct.unpack('>i', self.packet.read(4))[0] ^ mask
-            res += '%09d' % value
-
-        size = compressed_bytes[comp_fractional]
-        if size > 0:
-            value = self.packet.read_int_be_by_size(size) ^ mask
-            res += '%0*d' % (comp_fractional, value)
-
-        return decimal.Decimal(res)
-
 class GtidEvent(BinLogEvent):
     """GTID change in binlog event
     """
@@ -671,9 +622,6 @@ class UserVarEvent(BinLogEvent):
         if size > 0:
             res += '%0*d' % (comp_fractional, value)
         return decimal.Decimal(res)
-
-    def _read_new_decimal(self, precision, decimals):
-        return float(super()._read_new_decimal(precision, decimals))
 
     def _dump(self) -> None:
         super(UserVarEvent, self)._dump()
