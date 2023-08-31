@@ -794,7 +794,6 @@ class TestCTLConnectionSettings(base.PyMySQLReplicationTestCase):
     def test_separate_ctl_settings_table_metadata_unavailable(self):
         self.execute("CREATE TABLE test (id INTEGER(11))")
         self.execute("INSERT INTO test VALUES (1)")
-        self.execute("DROP TABLE test")
         self.execute("COMMIT")
 
         had_error = False
