@@ -3,7 +3,9 @@
 import struct
 
 from pymysqlreplication import constants, event, row_event
-from typing import List, Tuple, Any, Dict, Optional, Union
+
+from typing import List, Tuple, Dict, Optional, Union
+from pymysql.connections import MysqlPacket
 
 # Constants from PyMYSQL source code
 NULL_COLUMN = 251
@@ -15,7 +17,6 @@ UNSIGNED_CHAR_LENGTH = 1
 UNSIGNED_SHORT_LENGTH = 2
 UNSIGNED_INT24_LENGTH = 3
 UNSIGNED_INT64_LENGTH = 8
-
 
 JSONB_TYPE_SMALL_OBJECT = 0x0
 JSONB_TYPE_LARGE_OBJECT = 0x1
@@ -35,20 +36,6 @@ JSONB_TYPE_OPAQUE = 0xF
 JSONB_LITERAL_NULL = 0x0
 JSONB_LITERAL_TRUE = 0x1
 JSONB_LITERAL_FALSE = 0x2
-
-
-def read_offset_or_inline(packet, large: bool) -> Tuple[Any, Any, Any]:
-    t = packet.read_uint8()
-
-    if t in (JSONB_TYPE_LITERAL,
-             JSONB_TYPE_INT16, JSONB_TYPE_UINT16):
-        return t, None, packet.read_binary_json_type_inlined(t, large)
-    if large and t in (JSONB_TYPE_INT32, JSONB_TYPE_UINT32):
-        return t, None, packet.read_binary_json_type_inlined(t, large)
-
-    if large:
-        return t, packet.read_uint32(), None
-    return t, packet.read_uint16(), None
 
 
 class BinLogPacketWrapper(object):
@@ -82,7 +69,7 @@ class BinLogPacketWrapper(object):
         constants.DELETE_ROWS_EVENT_V2: row_event.DeleteRowsEvent,
         constants.TABLE_MAP_EVENT: row_event.TableMapEvent,
 
-        #5.6 GTID enabled replication events
+        # 5.6 GTID enabled replication events
         constants.ANONYMOUS_GTID_LOG_EVENT: event.NotImplementedEvent,
         constants.ANONYMOUS_GTID_LOG_EVENT: event.NotImplementedEvent,
         constants.PREVIOUS_GTIDS_LOG_EVENT: event.NotImplementedEvent,
@@ -95,7 +82,8 @@ class BinLogPacketWrapper(object):
         constants.MARIADB_START_ENCRYPTION_EVENT: event.MariadbStartEncryptionEvent
     }
 
-    def __init__(self, from_packet,
+    def __init__(self,
+                 from_packet,
                  table_map,
                  ctl_connection,
                  mysql_version,
@@ -438,13 +426,13 @@ class BinLogPacketWrapper(object):
         if large:
             key_offset_lengths = [(
                 self.read_uint32(),  # offset (we don't actually need that)
-                self.read_uint16()   # size of the key
-                ) for _ in range(elements)]
+                self.read_uint16()  # size of the key
+            ) for _ in range(elements)]
         else:
             key_offset_lengths = [(
                 self.read_uint16(),  # offset (we don't actually need that)
-                self.read_uint16()   # size of key
-                ) for _ in range(elements)]
+                self.read_uint16()  # size of key
+            ) for _ in range(elements)]
 
         value_type_inlined_lengths = [read_offset_or_inline(self, large)
                                       for _ in range(elements)]
@@ -498,3 +486,18 @@ class BinLogPacketWrapper(object):
             string += char
 
         return string
+
+
+def read_offset_or_inline(packet: Union[MysqlPacket, BinLogPacketWrapper], large: bool) \
+        -> Tuple[int, Optional[int], Optional[Union[bool, str]]]:
+    t = packet.read_uint8()
+
+    if t in (JSONB_TYPE_LITERAL,
+             JSONB_TYPE_INT16, JSONB_TYPE_UINT16):
+        return t, None, packet.read_binary_json_type_inlined(t, large)
+    if large and t in (JSONB_TYPE_INT32, JSONB_TYPE_UINT32):
+        return t, None, packet.read_binary_json_type_inlined(t, large)
+
+    if large:
+        return t, packet.read_uint32(), None
+    return t, packet.read_uint16(), None
