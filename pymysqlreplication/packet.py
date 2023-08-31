@@ -95,7 +95,8 @@ class BinLogPacketWrapper(object):
         constants.MARIADB_START_ENCRYPTION_EVENT: event.MariadbStartEncryptionEvent
     }
 
-    def __init__(self, from_packet, table_map,
+    def __init__(self, from_packet,
+                 table_map,
                  ctl_connection,
                  mysql_version,
                  use_checksum,
@@ -108,9 +109,9 @@ class BinLogPacketWrapper(object):
                  fail_on_table_metadata_unavailable,
                  ignore_decode_errors):
         # -1 because we ignore the ok byte
-        self.read_bytes = 0
+        self.read_bytes: int = 0
         # Used when we want to override a value in the data buffer
-        self.__data_buffer = b''
+        self.__data_buffer: bytes = b''
 
         self.packet = from_packet
         self.charset = ctl_connection.charset
@@ -187,7 +188,7 @@ class BinLogPacketWrapper(object):
         else:
             self.packet.advance(size)
 
-    def read_length_coded_binary(self) -> Optional[str]:
+    def read_length_coded_binary(self) -> Optional[int]:
         """
         Read a 'Length Coded Binary' number from the data buffer.
         Length coded numbers can be anywhere from 1 to 9 bytes depending
@@ -241,7 +242,7 @@ class BinLogPacketWrapper(object):
         elif size == 8:
             return struct.unpack('>l', self.read(size))[0]
 
-    def read_uint_by_size(self, size: int) -> str:
+    def read_uint_by_size(self, size: int) -> int:
         """
         Read a little endian integer values based on byte number
         """
@@ -284,65 +285,65 @@ class BinLogPacketWrapper(object):
             bits_read = bits_read + 7
         return self.read(length)
 
-    def read_int24(self) -> str:
+    def read_int24(self) -> int:
         a, b, c = struct.unpack("BBB", self.read(3))
         res = a | (b << 8) | (c << 16)
         if res >= 0x800000:
             res -= 0x1000000
         return res
 
-    def read_int24_be(self) -> str:
+    def read_int24_be(self) -> int:
         a, b, c = struct.unpack('BBB', self.read(3))
         res = (a << 16) | (b << 8) | c
         if res >= 0x800000:
             res -= 0x1000000
         return res
 
-    def read_uint8(self) -> str:
+    def read_uint8(self) -> int:
         return struct.unpack('<B', self.read(1))[0]
 
-    def read_int16(self) -> str:
+    def read_int16(self) -> int:
         return struct.unpack('<h', self.read(2))[0]
 
-    def read_uint16(self) -> str:
+    def read_uint16(self) -> int:
         return struct.unpack('<H', self.read(2))[0]
 
-    def read_uint24(self) -> str:
+    def read_uint24(self) -> int:
         a, b, c = struct.unpack("<BBB", self.read(3))
         return a + (b << 8) + (c << 16)
 
-    def read_uint32(self) -> str:
+    def read_uint32(self) -> int:
         return struct.unpack('<I', self.read(4))[0]
 
-    def read_int32(self) -> str:
+    def read_int32(self) -> int:
         return struct.unpack('<i', self.read(4))[0]
 
-    def read_uint40(self) -> str:
+    def read_uint40(self) -> int:
         a, b = struct.unpack("<BI", self.read(5))
         return a + (b << 8)
 
-    def read_int40_be(self) -> str:
+    def read_int40_be(self) -> int:
         a, b = struct.unpack(">IB", self.read(5))
         return b + (a << 8)
 
-    def read_uint48(self) -> str:
+    def read_uint48(self) -> int:
         a, b, c = struct.unpack("<HHH", self.read(6))
         return a + (b << 16) + (c << 32)
 
-    def read_uint56(self) -> str:
+    def read_uint56(self) -> int:
         a, b, c = struct.unpack("<BHI", self.read(7))
         return a + (b << 8) + (c << 24)
 
-    def read_uint64(self) -> str:
+    def read_uint64(self) -> int:
         return struct.unpack('<Q', self.read(8))[0]
 
-    def read_int64(self) -> str:
+    def read_int64(self) -> int:
         return struct.unpack('<q', self.read(8))[0]
 
-    def unpack_uint16(self, n: bytes) -> str:
+    def unpack_uint16(self, n: bytes) -> int:
         return struct.unpack('<H', n[0:2])[0]
 
-    def unpack_int24(self, n: bytes) -> Optional[str, int]:
+    def unpack_int24(self, n: bytes) -> Optional[str, Tuple[str, int]]:
         try:
             return struct.unpack('B', n[0])[0] \
                 + (struct.unpack('B', n[1])[0] << 8) \
@@ -350,7 +351,7 @@ class BinLogPacketWrapper(object):
         except TypeError:
             return n[0] + (n[1] << 8) + (n[2] << 16)
 
-    def unpack_int32(self, n):
+    def unpack_int32(self, n: bytes) -> Optional[str, Tuple[str, int]]:
         try:
             return struct.unpack('B', n[0])[0] \
                 + (struct.unpack('B', n[1])[0] << 8) \
@@ -370,7 +371,7 @@ class BinLogPacketWrapper(object):
 
         return self.read_binary_json_type(t, length)
 
-    def read_binary_json_type(self, t: bytes, length: int) -> Optional[bool, str]:
+    def read_binary_json_type(self, t: int, length: int) -> Optional[bool, str]:
         large = (t in (JSONB_TYPE_LARGE_OBJECT, JSONB_TYPE_LARGE_ARRAY))
         if t in (JSONB_TYPE_SMALL_OBJECT, JSONB_TYPE_LARGE_OBJECT):
             return self.read_binary_json_object(length - 1, large)
