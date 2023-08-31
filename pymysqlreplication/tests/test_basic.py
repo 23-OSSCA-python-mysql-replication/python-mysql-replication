@@ -1046,7 +1046,7 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
         # Insert first event
         query: str = "BEGIN;"
         self.execute(query)
-        insert_query: str = "INSERT INTO test (id, data) VALUES(1, 'Hello')"
+        insert_query: str = b"INSERT INTO test (id, data) VALUES(1, 'Hello')"
         self.execute(insert_query)
         query: str = "COMMIT;"
         self.execute(query)
