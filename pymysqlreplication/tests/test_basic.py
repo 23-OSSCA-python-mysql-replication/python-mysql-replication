@@ -5,7 +5,7 @@ import os
 import sys
 import time
 import pymysql
-from typing import List, Type, Union, Optional, Tuple, Dict, Any, Callable
+from typing import List, Type
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
