@@ -534,7 +534,13 @@ class UserVarEvent(BinLogEvent):
         return struct.unpack('<d', self.packet.read(8))[0]
 
     def _read_int(self):
-        return struct.unpack('<q', self.packet.read(8))[0]
+        raw_int = self.packet.read(8)
+        is_negative = bool(raw_int[-1] & 0x80)
+        if is_negative:
+            int_value = struct.unpack('<Q', raw_int)[0]
+        else:
+            int_value = struct.unpack('<q', raw_int)[0]
+        return int_value
 
     def _read_decimal(self):
         self.precision = self.packet.read_uint8()
