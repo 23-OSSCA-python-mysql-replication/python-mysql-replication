@@ -135,7 +135,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.stream.close()
         self.stream: BinLogStreamReader = BinLogStreamReader(
             self.database, server_id=1024, only_events=[QueryEvent])
-        query: BinLogEvent = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
+        query: str = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
 
         event: BinLogEvent = self.stream.fetchone()
@@ -390,7 +390,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
 
         self.assertIsInstance(self.stream.fetchone(), TableMapEvent)
 
-        event: BinLogEvent = self.stream.fetchone()
+        event: UpdateRowsEvent = self.stream.fetchone()
         if self.isMySQL56AndMore():
             self.assertEqual(event.event_type, UPDATE_ROWS_EVENT_V2)
         else:
@@ -947,13 +947,13 @@ class TestGtidRepresentation(unittest.TestCase):
 class GtidTests(unittest.TestCase):
     def test_ordering(self):
         gtid: Gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56")
-        other: int = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:5-10")
+        other: Gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:5-10")
         assert gtid.__lt__(other)
         assert gtid.__le__(other)
         assert other.__gt__(gtid)
         assert other.__ge__(gtid)
         gtid: Gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56")
-        other: int = Gtid("deadbeef-20d3-11e5-a393-4a63946f7eac:5-10")
+        other: Gtid = Gtid("deadbeef-20d3-11e5-a393-4a63946f7eac:5-10")
         assert gtid.__lt__(other)
         assert gtid.__le__(other)
         assert other.__gt__(gtid)
@@ -1046,7 +1046,7 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
         # Insert first event
         query: str = "BEGIN;"
         self.execute(query)
-        insert_query: bytes = b"INSERT INTO test (id, data) VALUES(1, 'Hello')"
+        insert_query: str = "INSERT INTO test (id, data) VALUES(1, 'Hello')"
         self.execute(insert_query)
         query: str = "COMMIT;"
         self.execute(query)
