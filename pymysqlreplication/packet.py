@@ -371,7 +371,7 @@ class BinLogPacketWrapper(object):
 
         return self.read_binary_json_type(t, length)
 
-    def read_binary_json_type(self, t: int, length: int) -> Optional[bool, str]:
+    def read_binary_json_type(self, t: int, length: int) -> Optional[Union[bool, str]]:
         large = (t in (JSONB_TYPE_LARGE_OBJECT, JSONB_TYPE_LARGE_ARRAY))
         if t in (JSONB_TYPE_SMALL_OBJECT, JSONB_TYPE_LARGE_OBJECT):
             return self.read_binary_json_object(length - 1, large)
@@ -404,7 +404,7 @@ class BinLogPacketWrapper(object):
 
         raise ValueError('Json type %d is not handled' % t)
 
-    def read_binary_json_type_inlined(self, t: bytes, large: bool) -> Optional[bool, str]:
+    def read_binary_json_type_inlined(self, t: bytes, large: bool) -> Optional[Union[bool, str]]:
         if t == JSONB_TYPE_LITERAL:
             value = self.read_uint32() if large else self.read_uint16()
             if value == JSONB_LITERAL_NULL:
