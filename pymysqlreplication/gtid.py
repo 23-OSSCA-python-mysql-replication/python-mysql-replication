@@ -174,7 +174,7 @@ class Gtid(object):
 
         Raises:
            Exception: if the attempted merge has different SID
-           """
+        """
         if self.sid != other.sid:
             raise Exception('Attempt to merge different SID'
                             '%s != %s' % (self.sid, other.sid))
@@ -411,7 +411,8 @@ class GtidSet(object):
                 sum(x.encoded_length for x in self.gtids))
 
     def encoded(self) -> bytes:
-        """Encode a GtidSet in binary
+        """
+        Encode a GtidSet in binary
         Bytes are in **little endian**.
 
         - `n_sid`: u64 is the number of Gtid to read
@@ -434,7 +435,8 @@ class GtidSet(object):
 
     @classmethod
     def decode(cls, payload: BytesIO) -> 'GtidSet':
-        """Decode a GtidSet from binary.
+        """
+        Decode a GtidSet from binary.
 
         :param BytesIO payload to decode
         """
