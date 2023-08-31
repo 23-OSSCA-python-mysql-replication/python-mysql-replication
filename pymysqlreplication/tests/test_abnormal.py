@@ -42,7 +42,7 @@ class TestAbnormalBinLogStreamReader(base.PyMySQLReplicationTestCase):
 
         binlog = self.execute("SHOW BINARY LOGS").fetchone()[0]
 
-        self.stream = BinLogStreamReader(
+        self.stream: BinLogStreamReader = BinLogStreamReader(
             self.database,
             server_id=1024,
             log_pos=4,
