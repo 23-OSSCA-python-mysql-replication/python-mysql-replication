@@ -3,7 +3,7 @@
 import copy
 import os
 import sys
-import typing
+from pymysql.cursors import Cursor
 import pymysql
 
 from pymysqlreplication import BinLogStreamReader
@@ -12,9 +12,6 @@ if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
-
-if typing.TYPE_CHECKING:
-    from pymysql.cursors import Cursor
 
 base = unittest.TestCase
 
