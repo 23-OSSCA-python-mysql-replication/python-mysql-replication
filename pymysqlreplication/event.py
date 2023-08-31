@@ -6,6 +6,7 @@ import datetime
 import decimal
 from pymysqlreplication.constants.STATUS_VAR_KEY import *
 from pymysqlreplication.exceptions import StatusVariableMismatch
+from typing import Union, Optional
 
 
 class BinLogEvent(object):
@@ -555,10 +556,10 @@ class UserVarEvent(BinLogEvent):
         super(UserVarEvent, self).__init__(from_packet, event_size, table_map, ctl_connection, **kwargs)
 
         # Payload
-        self.name_len = self.packet.read_uint32()
-        self.name = self.packet.read(self.name_len).decode()
-        self.is_null = self.packet.read_uint8()
-        self.type_to_codes_and_method = {
+        self.name_len: int = self.packet.read_uint32()
+        self.name: str = self.packet.read(self.name_len).decode()
+        self.is_null: int = self.packet.read_uint8()
+        self.type_to_codes_and_method: dict = {
             0x00: ['STRING_RESULT', self._read_string],
             0x01: ['REAL_RESULT', self._read_real],
             0x02: ['INT_RESULT', self._read_int],
@@ -566,43 +567,115 @@ class UserVarEvent(BinLogEvent):
             0x04: ['DECIMAL_RESULT', self._read_decimal]
         }
 
+        self.value: Optional[Union[str, float, int, decimal.Decimal]] = None
+        self.flags: Optional[int] = None
+        self.temp_value_buffer: Union[bytes, memoryview] = b''
+
         if not self.is_null:
-            self.type = self.packet.read_uint8()
-            self.charset = self.packet.read_uint32()
-            self.value_len = self.packet.read_uint32()
-
-            self.value = self.type_to_codes_and_method.get(self.type, ["UNKNOWN_RESULT", self._read_default])[1]()
-            self.flags = self.packet.read_uint8()
+            self.type: int = self.packet.read_uint8()
+            self.charset: int = self.packet.read_uint32()
+            self.value_len: int = self.packet.read_uint32()
+            self.temp_value_buffer: Union[bytes, memoryview] = self.packet.read(self.value_len)
+            self.flags: int = self.packet.read_uint8()
+            self._set_value_from_temp_buffer()
         else:
-            self.type, self.charset, self.value, self.flags = None, None, None, None
+            self.type, self.charset, self.value_len, self.value, self.flags = None, None, None, None, None
 
-    def _read_string(self):
-        return self.packet.read(self.value_len).decode()
+    def _set_value_from_temp_buffer(self):
+        """
+        Set the value from the temporary buffer based on the type code.
+        """
+        if self.temp_value_buffer:
+            type_code, read_method = self.type_to_codes_and_method.get(self.type, ["UNKNOWN_RESULT", self._read_default])
+            if type_code == 'INT_RESULT':
+                self.value = read_method(self.temp_value_buffer, self.flags)
+            else:
+                self.value = read_method(self.temp_value_buffer)
 
-    def _read_real(self):
-        return struct.unpack('<d', self.packet.read(8))[0]
+    def _read_string(self, buffer: bytes) -> str:
+        """
+        Read string data.
+        """
+        return buffer.decode()
 
-    def _read_int(self):
-        raw_int = self.packet.read(8)
-        is_negative = bool(raw_int[-1] & 0x80)
-        if is_negative:
-            int_value = struct.unpack('<Q', raw_int)[0]
-        else:
-            int_value = struct.unpack('<q', raw_int)[0]
-        return int_value
+    def _read_real(self, buffer: bytes) -> float:
+        """
+        Read real data.
+        """
+        return struct.unpack('<d', buffer)[0]
 
-    def _read_decimal(self):
-        self.precision = self.packet.read_uint8()
-        self.decimals = self.packet.read_uint8()
-        return self._read_new_decimal(self.precision, self.decimals)
+    def _read_int(self, buffer: bytes, flags: int) -> int:
+        """
+        Read integer data.
+        """
+        fmt = '<Q' if flags == 1 else '<q'
+        return struct.unpack(fmt, buffer)[0]
 
-    def _read_default(self):
+    def _read_decimal(self, buffer: bytes) -> decimal.Decimal:
+        """
+        Read decimal data.
+        """
+        self.precision = self.temp_value_buffer[0]
+        self.decimals = self.temp_value_buffer[1]
+        raw_decimal = self.temp_value_buffer[2:]
+        return self._parse_decimal_from_bytes(raw_decimal, self.precision, self.decimals)
+
+    def _read_default(self) -> bytes:
+        """
+        Read default data.
+        Used when the type is None.
+        """
         return self.packet.read(self.value_len)
+
+    @staticmethod
+    def _parse_decimal_from_bytes(raw_decimal: bytes, precision: int, decimals: int) -> decimal.Decimal:
+        """
+        Parse decimal from bytes.
+        """
+        digits_per_integer = 9
+        compressed_bytes = [0, 1, 1, 2, 2, 3, 3, 4, 4, 4]
+        integral = precision - decimals
+
+        uncomp_integral, comp_integral = divmod(integral, digits_per_integer)
+        uncomp_fractional, comp_fractional = divmod(decimals, digits_per_integer)
+
+        res = "-" if not raw_decimal[0] & 0x80 else ""
+        mask = -1 if res == "-" else 0
+        raw_decimal = bytearray([raw_decimal[0] ^ 0x80]) + raw_decimal[1:]
+
+        def decode_decimal_decompress_value(comp_indx, data, mask):
+            size = compressed_bytes[comp_indx]
+            if size > 0:
+                databuff = bytearray(data[:size])
+                for i in range(size):
+                    databuff[i] = (databuff[i] ^ mask) & 0xFF
+                return size, int.from_bytes(databuff, byteorder='big')
+            return 0, 0
+
+        pointer, value = decode_decimal_decompress_value(comp_integral, raw_decimal, mask)
+        res += str(value)
+
+        for _ in range(uncomp_integral):
+            value = struct.unpack('>i', raw_decimal[pointer:pointer+4])[0] ^ mask
+            res += '%09d' % value
+            pointer += 4
+
+        res += "."
+
+        for _ in range(uncomp_fractional):
+            value = struct.unpack('>i', raw_decimal[pointer:pointer+4])[0] ^ mask
+            res += '%09d' % value
+            pointer += 4
+
+        size, value = decode_decimal_decompress_value(comp_fractional, raw_decimal[pointer:], mask)
+        if size > 0:
+            res += '%0*d' % (comp_fractional, value)
+        return decimal.Decimal(res)
 
     def _read_new_decimal(self, precision, decimals):
         return float(super()._read_new_decimal(precision, decimals))
 
-    def _dump(self):
+    def _dump(self) -> None:
         super(UserVarEvent, self)._dump()
         print("User variable name: %s" % self.name)
         print("Is NULL: %s" % ("Yes" if self.is_null else "No"))
