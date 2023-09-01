@@ -21,7 +21,7 @@ class BinLogEvent(object):
                  freeze_schema=False,
                  fail_on_table_metadata_unavailable=False,
                  ignore_decode_errors=False):
-        self.packet: Type[MysqlPacket] = from_packet
+        self.packet: MysqlPacket = from_packet
         self.table_map: Dict[int, Table] = table_map
         self.event_type: int = self.packet.event_type
         self.timestamp: int = self.packet.timestamp
