@@ -5,7 +5,8 @@ from distutils.version import LooseVersion
 
 import pymysql
 from pymysql.constants.COMMAND import COM_BINLOG_DUMP, COM_REGISTER_SLAVE
-from pymysql.cursors import DictCursor, Cursor
+from pymysql.cursors import Cursor, DictCursor
+from pymysql.connections import Connection, MysqlPacket
 
 from .constants.BINLOG import TABLE_MAP_EVENT, ROTATE_EVENT, FORMAT_DESCRIPTION_EVENT
 from .event import (
@@ -21,7 +22,6 @@ from .packet import BinLogPacketWrapper
 from .row_event import (
     UpdateRowsEvent, WriteRowsEvent, DeleteRowsEvent, TableMapEvent)
 from typing import ByteString, Union, Optional, List, Tuple, Dict, Any, Iterator, FrozenSet, Type
-from pymysql.connections import Connection
 
 try:
     from pymysql.constants.COMMAND import COM_BINLOG_DUMP_GTID
@@ -36,8 +36,10 @@ MYSQL_EXPECTED_ERROR_CODES = [2013, 2006]
 
 
 class ReportSlave(object):
-    """Represent the values that you may report when connecting as a slave
-    to a master. SHOW SLAVE HOSTS related"""
+    """
+    Represent the values that you may report
+    when connecting as a slave to a master. SHOW SLAVE HOSTS related.
+    """
 
     def __init__(self, value: Union[str, Tuple[str, str, str, int]]) -> None:
         """
@@ -74,9 +76,9 @@ class ReportSlave(object):
 
     def encoded(self, server_id: int, master_id: int = 0) -> ByteString:
         """
-        server_id: the slave server-id
-        master_id: usually 0. Appears as "master id" in SHOW SLAVE HOSTS
-                   on the master. Unknown what else it impacts.
+        :ivar server_id: int - the slave server-id
+        :ivar master_id: int - usually 0. Appears as "master id" in SHOW SLAVE HOSTS on the master.
+                               Unknown what else it impacts.
         """
 
         # 1              [15] COM_REGISTER_SLAVE
@@ -124,9 +126,10 @@ class ReportSlave(object):
 
 
 class BinLogStreamReader(object):
-    """Connect to replication stream and read event
     """
-    report_slave: Optional[ReportSlave] = None
+    Connect to replication stream and read event
+    """
+    report_slave: Optional[Union[str, Tuple[str, str, str, int]]] = None
 
     def __init__(self, connection_settings: Dict, server_id: int,
                  ctl_connection_settings: Optional[Dict] = None, resume_stream: bool = False,
@@ -137,7 +140,7 @@ class BinLogStreamReader(object):
                  only_tables: Optional[List[str]] = None, ignored_tables: Optional[List[str]] = None,
                  only_schemas: Optional[List[str]] = None, ignored_schemas: Optional[List[str]] = None,
                  freeze_schema: bool = False, skip_to_timestamp: Optional[float] = None,
-                 report_slave: Optional[ReportSlave] = None, slave_uuid: Optional[str] = None,
+                 report_slave: Optional[Union[str, Tuple[str, str, str, int]]] = None, slave_uuid: Optional[str] = None,
                  pymysql_wrapper: Optional[Connection] = None,
                  fail_on_table_metadata_unavailable: bool = False,
                  slave_heartbeat: Optional[float] = None,
@@ -146,44 +149,42 @@ class BinLogStreamReader(object):
                  ignore_decode_errors: bool = False) -> None:
         """
         Attributes:
-            ctl_connection_settings: Connection settings for cluster holding
+            ctl_connection_settings[Dict]: Connection settings for cluster holding
                                      schema information
-            resume_stream: Start for event from position or the latest event of
+            resume_stream[bool]: Start for event from position or the latest event of
                            binlog or from older available event
-            blocking: When master has finished reading/sending binlog it will
+            blocking[bool]: When master has finished reading/sending binlog it will
                       send EOF instead of blocking connection.
-            only_events: Array of allowed events
-            ignored_events: Array of ignored events
-            log_file: Set replication start log file
-            log_pos: Set replication start log pos (resume_stream should be
+            only_events[List[str]]: Array of allowed events
+            ignored_events[List[str]]: Array of ignored events
+            log_file[str]: Set replication start log file
+            log_pos[int]: Set replication start log pos (resume_stream should be
                      true)
-            end_log_pos: Set replication end log pos
-            auto_position: Use master_auto_position gtid to set position
-            only_tables: An array with the tables you want to watch (only works
+            end_log_pos[int]: Set replication end log pos
+            auto_position[str]: Use master_auto_position gtid to set position
+            only_tables[List[str]]: An array with the tables you want to watch (only works
                          in binlog_format ROW)
-            ignored_tables: An array with the tables you want to skip
-            only_schemas: An array with the schemas you want to watch
-            ignored_schemas: An array with the schemas you want to skip
-            freeze_schema: If true do not support ALTER TABLE. It's faster.
-            skip_to_timestamp: Ignore all events until reaching specified
-                               timestamp.
-            report_slave: Report slave in SHOW SLAVE HOSTS.
-            slave_uuid: Report slave_uuid or replica_uuid in SHOW SLAVE HOSTS(MySQL 8.0.21-) or
+            ignored_tables[List[str]]: An array with the tables you want to skip
+            only_schemas[List[str]]: An array with the schemas you want to watch
+            ignored_schemas[List[str]]: An array with the schemas you want to skip
+            freeze_schema[bool]: If true do not support ALTER TABLE. It's faster.
+            skip_to_timestamp[float]: Ignore all events until reaching specified timestamp.
+            report_slave[ReportSlave]: Report slave in SHOW SLAVE HOSTS.
+            slave_uuid[str]: Report slave_uuid or replica_uuid in SHOW SLAVE HOSTS(MySQL 8.0.21-) or
                         SHOW REPLICAS(MySQL 8.0.22+) depends on your MySQL version.
-            fail_on_table_metadata_unavailable: Should raise exception if we
-                                                can't get table information on
-                                                row_events
-            slave_heartbeat: (seconds) Should master actively send heartbeat on
+            fail_on_table_metadata_unavailable[bool]: Should raise exception if we
+                                                can't get table information on row_events
+            slave_heartbeat[float]: (seconds) Should master actively send heartbeat on
                              connection. This also reduces traffic in GTID
                              replication on replication resumption (in case
                              many event to skip in binlog). See
                              MASTER_HEARTBEAT_PERIOD in mysql documentation
                              for semantics
-            is_mariadb: Flag to indicate it's a MariaDB server, used with auto_position
+            is_mariadb[bool]: Flag to indicate it's a MariaDB server, used with auto_position
                     to point to Mariadb specific GTID.
-            annotate_rows_event: Parameter value to enable annotate rows event in mariadb,
+            annotate_rows_event[bool]: Parameter value to enable annotate rows event in mariadb,
                     used with 'is_mariadb'
-            ignore_decode_errors: If true, any decode errors encountered
+            ignore_decode_errors[bool]: If true, any decode errors encountered
                                   when reading column data will be ignored.
         """
 
@@ -230,12 +231,12 @@ class BinLogStreamReader(object):
             self.is_past_end_log_pos: bool = False
 
         if report_slave:
-            self.report_slave: Optional[ReportSlave] = ReportSlave(report_slave)
+            self.report_slave: ReportSlave = ReportSlave(report_slave)
         self.slave_uuid: Optional[str] = slave_uuid
         self.slave_heartbeat: Optional[float] = slave_heartbeat
 
         if pymysql_wrapper:
-            self.pymysql_wrapper: Optional[Connection] = pymysql_wrapper
+            self.pymysql_wrapper: Connection = pymysql_wrapper
         else:
             self.pymysql_wrapper: Optional[Union[Connection, Type[Connection]]] = pymysql.connect
         self.mysql_version: Tuple = (0, 0, 0)
@@ -262,7 +263,9 @@ class BinLogStreamReader(object):
         self.__connected_ctl: bool = True
 
     def __checksum_enabled(self) -> bool:
-        """Return True if binlog-checksum = CRC32. Only for MySQL > 5.6"""
+        """
+        Return True if binlog-checksum = CRC32. Only for MySQL > 5.6
+        """
         cur: Cursor = self._stream_connection.cursor()
         cur.execute("SHOW GLOBAL VARIABLES LIKE 'BINLOG_CHECKSUM'")
         result: Optional[Tuple[str, str]] = cur.fetchone()
@@ -295,19 +298,19 @@ class BinLogStreamReader(object):
         # flags (2) BINLOG_DUMP_NON_BLOCK (0 or 1)
         # server_id (4) -- server id of this slave
         # log_file (string.EOF) -- filename of the binlog on the master
-        self._stream_connection = self.pymysql_wrapper(**self.__connection_settings)
+        self._stream_connection: Connection = self.pymysql_wrapper(**self.__connection_settings)
 
         self.__use_checksum: bool = self.__checksum_enabled()
 
         # If checksum is enabled we need to inform the server about the that
         # we support it
         if self.__use_checksum:
-            cur = self._stream_connection.cursor()
+            cur: Cursor = self._stream_connection.cursor()
             cur.execute("SET @master_binlog_checksum= @@global.binlog_checksum")
             cur.close()
 
         if self.slave_uuid:
-            cur = self._stream_connection.cursor()
+            cur: Cursor = self._stream_connection.cursor()
             cur.execute("SET @slave_uuid = %s, @replica_uuid = %s", (self.slave_uuid, self.slave_uuid))
             cur.close()
 
@@ -339,14 +342,14 @@ class BinLogStreamReader(object):
 
         if not self.auto_position:
             if self.is_mariadb:
-                prelude = self.__set_mariadb_settings()
+                prelude: ByteString = self.__set_mariadb_settings()
             else:
                 # only when log_file and log_pos both provided, the position info is
                 # valid, if not, get the current position from master
                 if self.log_file is None or self.log_pos is None:
                     cur: Cursor = self._stream_connection.cursor()
                     cur.execute("SHOW MASTER STATUS")
-                    master_status: Optional[Tuple[str, int, ...]] = cur.fetchone()
+                    master_status: Optional[Tuple[str, int, Any]] = cur.fetchone()
                     if master_status is None:
                         raise BinLogNotEnabled()
                     self.log_file, self.log_pos = master_status[:2]
@@ -507,9 +510,9 @@ class BinLogStreamReader(object):
 
             try:
                 if pymysql.__version__ < LooseVersion("0.6"):
-                    pkt = self._stream_connection.read_packet()
+                    pkt: MysqlPacket = self._stream_connection.read_packet()
                 else:
-                    pkt = self._stream_connection._read_packet()
+                    pkt: MysqlPacket = self._stream_connection._read_packet()
             except pymysql.OperationalError as error:
                 code, message = error.args
                 if code in MYSQL_EXPECTED_ERROR_CODES:
