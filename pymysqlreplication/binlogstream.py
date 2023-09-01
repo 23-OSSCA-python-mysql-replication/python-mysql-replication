@@ -41,12 +41,13 @@ class ReportSlave(object):
     when connecting as a slave to a master. SHOW SLAVE HOSTS related.
     """
 
-    def __init__(self, value: Union[str, Tuple[str, str, str, int]]) -> None:
+    def __init__(self, value: Union[str, Tuple[str, str, str, int], Dict[str, Union[str, int]]]) -> None:
         """
         Attributes:
-            value: string or tuple
+            value: string, tuple or dict
                    if string, then it will be used hostname
                    if tuple it will be used as (hostname, user, password, port)
+                   if dict, keys 'hostname', 'username', 'password', 'port' will be used.
         """
         self.hostname: str = ''
         self.username: str = ''
@@ -342,7 +343,7 @@ class BinLogStreamReader(object):
 
         if not self.auto_position:
             if self.is_mariadb:
-                prelude: ByteString = self.__set_mariadb_settings()
+                prelude = self.__set_mariadb_settings()
             else:
                 # only when log_file and log_pos both provided, the position info is
                 # valid, if not, get the current position from master
@@ -355,7 +356,7 @@ class BinLogStreamReader(object):
                     self.log_file, self.log_pos = master_status[:2]
                     cur.close()
 
-                prelude: ByteString = struct.pack('<i', len(self.log_file) + 11) \
+                prelude: bytes = struct.pack('<i', len(self.log_file) + 11) \
                           + bytes(bytearray([COM_BINLOG_DUMP]))
 
                 if self.__resume_stream:
@@ -455,7 +456,7 @@ class BinLogStreamReader(object):
             self._stream_connection._next_seq_id = 1
         self.__connected_stream: bool = True
 
-    def __set_mariadb_settings(self) -> ByteString:
+    def __set_mariadb_settings(self) -> bytes:
         # https://mariadb.com/kb/en/5-slave-registration/
         cur: Cursor = self._stream_connection.cursor()
         if self.auto_position != None:
@@ -472,7 +473,7 @@ class BinLogStreamReader(object):
                 4  # requested binlog file name , set it to empty
         )
 
-        prelude: ByteString = struct.pack('<i', header_size) + bytes(bytearray([COM_BINLOG_DUMP]))
+        prelude: bytes = struct.pack('<i', header_size) + bytes(bytearray([COM_BINLOG_DUMP]))
 
         # binlog pos
         prelude += struct.pack('<i', 4)
