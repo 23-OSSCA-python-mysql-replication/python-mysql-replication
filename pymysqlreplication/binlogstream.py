@@ -283,7 +283,7 @@ class BinLogStreamReader(object):
         if not self.report_slave:
             return
 
-        packet: ByteString = self.report_slave.encoded(self.__server_id)
+        packet: bytes = self.report_slave.encoded(self.__server_id)
 
         if pymysql.__version__ < LooseVersion("0.6"):
             self._stream_connection.wfile.write(packet)
@@ -374,7 +374,7 @@ class BinLogStreamReader(object):
                 prelude += self.log_file.encode()
         else:
             if self.is_mariadb:
-                prelude: ByteString = self.__set_mariadb_settings()
+                prelude = self.__set_mariadb_settings()
             else:
                 # Format for mysql packet master_auto_position
                 #
