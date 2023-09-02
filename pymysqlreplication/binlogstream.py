@@ -8,9 +8,10 @@ from pymysql.constants.COMMAND import COM_BINLOG_DUMP, COM_REGISTER_SLAVE
 from pymysql.cursors import Cursor, DictCursor
 from pymysql.connections import Connection, MysqlPacket
 
+from . import event
 from .constants.BINLOG import TABLE_MAP_EVENT, ROTATE_EVENT, FORMAT_DESCRIPTION_EVENT
 from .event import (
-    QueryEvent, RotateEvent, FormatDescriptionEvent,
+    BinLogEvent, QueryEvent, RotateEvent, FormatDescriptionEvent,
     XidEvent, GtidEvent, StopEvent, XAPrepareEvent,
     BeginLoadQueryEvent, ExecuteLoadQueryEvent,
     HeartbeatLogEvent, NotImplementedEvent, MariadbGtidEvent,
@@ -212,7 +213,7 @@ class BinLogStreamReader(object):
 
         # We can't filter on packet level TABLE_MAP and rotate event because
         # we need them for handling other operations
-        self.__allowed_events_in_packet: FrozenSet[str] = frozenset(
+        self.__allowed_events_in_packet: FrozenSet[Type[BinLogEvent]] = frozenset(
             [TableMapEvent, RotateEvent]).union(self.__allowed_events)
 
         self.__server_id: int = server_id
