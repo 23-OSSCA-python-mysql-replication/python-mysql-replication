@@ -16,7 +16,8 @@ from .event import (
     BeginLoadQueryEvent, ExecuteLoadQueryEvent,
     HeartbeatLogEvent, NotImplementedEvent, MariadbGtidEvent,
     MariadbAnnotateRowsEvent, RandEvent, MariadbStartEncryptionEvent, RowsQueryLogEvent,
-    MariadbGtidListEvent, MariadbBinLogCheckPointEvent)
+    MariadbGtidListEvent, MariadbBinLogCheckPointEvent, UserVarEvent,
+    PreviousGtidsEvent)
 from .exceptions import BinLogNotEnabled
 from .gtid import GtidSet
 from .packet import BinLogPacketWrapper
@@ -148,7 +149,8 @@ class BinLogStreamReader(object):
                  slave_heartbeat: Optional[float] = None,
                  is_mariadb: bool = False,
                  annotate_rows_event: bool = False,
-                 ignore_decode_errors: bool = False) -> None:
+                 ignore_decode_errors: bool = False,
+                 verify_checksum = False) -> None:
         """
         Attributes:
             ctl_connection_settings[Dict]: Connection settings for cluster holding
@@ -188,6 +190,7 @@ class BinLogStreamReader(object):
                     used with 'is_mariadb'
             ignore_decode_errors[bool]: If true, any decode errors encountered
                                   when reading column data will be ignored.
+            verify_checksum[bool]: If true, verify events read from the binary log by examining checksums.
         """
 
         self.__connection_settings: Dict = connection_settings
@@ -210,6 +213,7 @@ class BinLogStreamReader(object):
             only_events, ignored_events, filter_non_implemented_events)
         self.__fail_on_table_metadata_unavailable: bool = fail_on_table_metadata_unavailable
         self.__ignore_decode_errors: bool = ignore_decode_errors
+        self.__verify_checksum: bool = verify_checksum
 
         # We can't filter on packet level TABLE_MAP and rotate event because
         # we need them for handling other operations
@@ -541,7 +545,8 @@ class BinLogStreamReader(object):
                                                self.__ignored_schemas,
                                                self.__freeze_schema,
                                                self.__fail_on_table_metadata_unavailable,
-                                               self.__ignore_decode_errors)
+                                               self.__ignore_decode_errors,
+                                               self.__verify_checksum,)
 
             if binlog_event.event_type == ROTATE_EVENT:
                 self.log_pos = binlog_event.event.position
@@ -632,7 +637,9 @@ class BinLogStreamReader(object):
                 RandEvent,
                 MariadbStartEncryptionEvent,
                 MariadbGtidListEvent,
-                MariadbBinLogCheckPointEvent
+                MariadbBinLogCheckPointEvent,
+                UserVarEvent,
+                PreviousGtidsEvent
             ))
         if ignored_events is not None:
             for e in ignored_events:
