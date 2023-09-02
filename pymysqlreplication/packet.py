@@ -4,7 +4,7 @@ import struct
 
 from pymysqlreplication import constants, event, row_event
 
-from typing import List, Tuple, Dict, Optional, Union, FrozenSet
+from typing import List, Tuple, Dict, Optional, Union, FrozenSet, Type
 from pymysql.connections import MysqlPacket, Connection
 
 # Constants from PyMYSQL source code
@@ -88,7 +88,7 @@ class BinLogPacketWrapper(object):
                  ctl_connection: Connection,
                  mysql_version: Tuple[int, int, int],
                  use_checksum: bool,
-                 allowed_events: FrozenSet[event.BinLogEvent],
+                 allowed_events: FrozenSet[Type[event.BinLogEvent]],
                  only_tables: Optional[List[str]],
                  ignored_tables: Optional[List[str]],
                  only_schemas: Optional[List[str]],
