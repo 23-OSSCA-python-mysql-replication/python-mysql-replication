@@ -4,8 +4,8 @@ import struct
 
 from pymysqlreplication import constants, event, row_event
 
-from typing import List, Tuple, Dict, Optional, Union
-from pymysql.connections import MysqlPacket
+from typing import List, Tuple, Dict, Optional, Union, FrozenSet
+from pymysql.connections import MysqlPacket, Connection
 
 # Constants from PyMYSQL source code
 NULL_COLUMN = 251
@@ -83,26 +83,26 @@ class BinLogPacketWrapper(object):
     }
 
     def __init__(self,
-                 from_packet,
-                 table_map,
-                 ctl_connection,
-                 mysql_version,
-                 use_checksum,
-                 allowed_events,
-                 only_tables,
-                 ignored_tables,
-                 only_schemas,
-                 ignored_schemas,
-                 freeze_schema,
-                 fail_on_table_metadata_unavailable,
-                 ignore_decode_errors):
+                 from_packet: MysqlPacket,
+                 table_map: dict,
+                 ctl_connection: Connection,
+                 mysql_version: Tuple[int, int, int],
+                 use_checksum: bool,
+                 allowed_events: FrozenSet[event.BinLogEvent],
+                 only_tables: Optional[List[str]],
+                 ignored_tables: Optional[List[str]],
+                 only_schemas: Optional[List[str]],
+                 ignored_schemas: Optional[List[str]],
+                 freeze_schema: bool,
+                 fail_on_table_metadata_unavailable: bool,
+                 ignore_decode_errors: bool) -> None:
         # -1 because we ignore the ok byte
-        self.read_bytes: int = 0
+        self.read_bytes = 0
         # Used when we want to override a value in the data buffer
-        self.__data_buffer: bytes = b''
+        self.__data_buffer = b''
 
-        self.packet = from_packet
-        self.charset = ctl_connection.charset
+        self.packet: MysqlPacket = from_packet
+        self.charset: str = ctl_connection.charset
 
         # OK value
         # timestamp
@@ -113,13 +113,13 @@ class BinLogPacketWrapper(object):
         unpack = struct.unpack('<cIBIIIH', self.packet.read(20))
 
         # Header
-        self.timestamp = unpack[1]
-        self.event_type = unpack[2]
-        self.server_id = unpack[3]
-        self.event_size = unpack[4]
+        self.timestamp: int = unpack[1]
+        self.event_type: int = unpack[2]
+        self.server_id: int = unpack[3]
+        self.event_size: int = unpack[4]
         # position of the next event
-        self.log_pos = unpack[5]
-        self.flags = unpack[6]
+        self.log_pos: int = unpack[5]
+        self.flags: int = unpack[6]
 
         # MySQL 5.6 and more if binlog-checksum = CRC32
         if use_checksum:
@@ -132,16 +132,20 @@ class BinLogPacketWrapper(object):
 
         if event_class not in allowed_events:
             return
-        self.event = event_class(self, event_size_without_header, table_map,
-                                 ctl_connection,
-                                 mysql_version=mysql_version,
-                                 only_tables=only_tables,
-                                 ignored_tables=ignored_tables,
-                                 only_schemas=only_schemas,
-                                 ignored_schemas=ignored_schemas,
-                                 freeze_schema=freeze_schema,
-                                 fail_on_table_metadata_unavailable=fail_on_table_metadata_unavailable,
-                                 ignore_decode_errors=ignore_decode_errors)
+        self.event: event.BinLogEvent = event_class(
+            self,
+            event_size_without_header,
+            table_map,
+            ctl_connection,
+            mysql_version=mysql_version,
+            only_tables=only_tables,
+            ignored_tables=ignored_tables,
+            only_schemas=only_schemas,
+            ignored_schemas=ignored_schemas,
+            freeze_schema=freeze_schema,
+            fail_on_table_metadata_unavailable=fail_on_table_metadata_unavailable,
+            ignore_decode_errors=ignore_decode_errors
+        )
         if self.event._processed == False:
             self.event = None
 
@@ -157,7 +161,7 @@ class BinLogPacketWrapper(object):
                 return data + self.packet.read(size - len(data))
         return self.packet.read(size)
 
-    def unread(self, data: str):
+    def unread(self, data: Union[int, bytes]) -> None:
         """
         Push again data in data buffer.
         Use to extract a bit from a value and ensure that the rest of the code reads data normally
@@ -165,7 +169,7 @@ class BinLogPacketWrapper(object):
         self.read_bytes -= len(data)
         self.__data_buffer += data
 
-    def advance(self, size: int):
+    def advance(self, size: int) -> None:
         size = int(size)
         self.read_bytes += size
         buffer_len = len(self.__data_buffer)
@@ -213,7 +217,7 @@ class BinLogPacketWrapper(object):
         raise AttributeError("%s instance has no attribute '%s'" %
                              (self.__class__, key))
 
-    def read_int_be_by_size(self, size: int):
+    def read_int_be_by_size(self, size: int) -> int:
         """
         Read a big endian integer values based on byte number
         """
@@ -359,7 +363,10 @@ class BinLogPacketWrapper(object):
 
         return self.read_binary_json_type(t, length)
 
-    def read_binary_json_type(self, t: int, length: int) -> Optional[Union[bool, str]]:
+    def read_binary_json_type(self, t: int, length: int) \
+            -> Optional[Union[
+                Dict[Union[int, bytes], Union[bool, str, None]],
+                List[int], bool, int]]:
         large = (t in (JSONB_TYPE_LARGE_OBJECT, JSONB_TYPE_LARGE_ARRAY))
         if t in (JSONB_TYPE_SMALL_OBJECT, JSONB_TYPE_LARGE_OBJECT):
             return self.read_binary_json_object(length - 1, large)
@@ -392,7 +399,7 @@ class BinLogPacketWrapper(object):
 
         raise ValueError('Json type %d is not handled' % t)
 
-    def read_binary_json_type_inlined(self, t: bytes, large: bool) -> Optional[Union[bool, str]]:
+    def read_binary_json_type_inlined(self, t: bytes, large: bool) -> Optional[Union[bool, int]]:
         if t == JSONB_TYPE_LITERAL:
             value = self.read_uint32() if large else self.read_uint16()
             if value == JSONB_LITERAL_NULL:
@@ -412,7 +419,8 @@ class BinLogPacketWrapper(object):
 
         raise ValueError('Json type %d is not handled' % t)
 
-    def read_binary_json_object(self, length: int, large: bool) -> Dict[str, str]:
+    def read_binary_json_object(self, length: int, large: bool) \
+            -> Dict[Union[int, bytes], Union[bool, str, None]]:
         if large:
             elements = self.read_uint32()
             size = self.read_uint32()
@@ -450,7 +458,7 @@ class BinLogPacketWrapper(object):
 
         return out
 
-    def read_binary_json_array(self, length: int, large: bool) -> List:
+    def read_binary_json_array(self, length: int, large: bool) -> List[int]:
         if large:
             elements = self.read_uint32()
             size = self.read_uint32()
@@ -465,7 +473,7 @@ class BinLogPacketWrapper(object):
             read_offset_or_inline(self, large)
             for _ in range(elements)]
 
-        def _read(x):
+        def _read(x: Tuple[int, Optional[int], Optional[Union[bool, str]]]) -> int:
             if x[1] is None:
                 return x[2]
             return self.read_binary_json_type(x[0], length)
