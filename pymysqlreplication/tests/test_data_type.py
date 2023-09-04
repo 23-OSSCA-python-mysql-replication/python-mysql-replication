@@ -34,7 +34,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
     def ignoredEvents(self):
         return [GtidEvent, PreviousGtidsEvent]
 
-    def create_and_insert_value(self, create_query, insert_query):
+    def create_and_insert_value(self, create_query: str, insert_query: str):
         self.execute(create_query)
         self.execute(insert_query)
         self.execute("COMMIT")
@@ -57,7 +57,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(event, WriteRowsEvent)
         return event
 
-    def create_table(self, create_query):
+    def create_table(self, create_query: str):
         """Create table 
 
         Create table in db and return query event.
@@ -77,7 +77,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
 
         return event
 
-    def create_and_get_tablemap_event(self, bit):
+    def create_and_get_tablemap_event(self):
         """Create table and return tablemap event
 
         Returns:
