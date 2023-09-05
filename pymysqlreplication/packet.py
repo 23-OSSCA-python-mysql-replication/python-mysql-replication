@@ -151,7 +151,7 @@ class BinLogPacketWrapper(object):
         if self.event._processed == False:
             self.event = None
 
-    def read(self, size: int) -> Union[int, bytes]:
+    def read(self, size: int) -> bytes:
         size = int(size)
         self.read_bytes += size
         if len(self.__data_buffer) > 0:
@@ -163,7 +163,7 @@ class BinLogPacketWrapper(object):
                 return data + self.packet.read(size - len(data))
         return self.packet.read(size)
 
-    def unread(self, data: Union[int, bytes]) -> None:
+    def unread(self, data: bytes) -> None:
         """
         Push again data in data buffer.
         Use to extract a bit from a value and ensure that the rest of the code reads data normally
@@ -257,7 +257,7 @@ class BinLogPacketWrapper(object):
         elif size == 8:
             return self.read_uint64()
 
-    def read_length_coded_pascal_string(self, size: int) -> Union[int, bytes]:
+    def read_length_coded_pascal_string(self, size: int) -> bytes:
         """
         Read a string with length coded using pascal style.
         The string start by the size of the string
@@ -265,7 +265,7 @@ class BinLogPacketWrapper(object):
         length = self.read_uint_by_size(size)
         return self.read(length)
 
-    def read_variable_length_string(self) -> Union[int, bytes]:
+    def read_variable_length_string(self) -> bytes:
         """
         Read a variable length string where the first 1-5 bytes stores the length of the string.
         For each byte, the first bit being high indicates another byte must be read.
@@ -367,8 +367,8 @@ class BinLogPacketWrapper(object):
 
     def read_binary_json_type(self, t: int, length: int) \
             -> Optional[Union[
-                Dict[Union[int, bytes], Union[bool, str, None]],
-                List[int], bool, int]]:
+                Dict[bytes, Union[bool, str, None]],
+                List[int], bool, int, bytes]]:
         large = (t in (JSONB_TYPE_LARGE_OBJECT, JSONB_TYPE_LARGE_ARRAY))
         if t in (JSONB_TYPE_SMALL_OBJECT, JSONB_TYPE_LARGE_OBJECT):
             return self.read_binary_json_object(length - 1, large)
@@ -422,7 +422,7 @@ class BinLogPacketWrapper(object):
         raise ValueError('Json type %d is not handled' % t)
 
     def read_binary_json_object(self, length: int, large: bool) \
-            -> Dict[Union[int, bytes], Union[bool, str, None]]:
+            -> Dict[bytes, Union[bool, str, None]]:
         if large:
             elements = self.read_uint32()
             size = self.read_uint32()
