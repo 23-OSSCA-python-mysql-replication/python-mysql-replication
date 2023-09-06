@@ -339,18 +339,18 @@ class BinLogPacketWrapper(object):
 
     def unpack_int24(self, n: bytes) -> Optional[Union[int, Tuple[str, int]]]:
         try:
-            return struct.unpack('B', n[0])[0] \
-                + (struct.unpack('B', n[1])[0] << 8) \
-                + (struct.unpack('B', n[2])[0] << 16)
+            return struct.unpack('B', n[0:1])[0] \
+                + (struct.unpack('B', n[1:2])[0] << 8) \
+                + (struct.unpack('B', n[2:3])[0] << 16)
         except TypeError:
             return n[0] + (n[1] << 8) + (n[2] << 16)
 
     def unpack_int32(self, n: bytes) -> Optional[Union[int, Tuple[str, int]]]:
         try:
-            return struct.unpack('B', n[0])[0] \
-                + (struct.unpack('B', n[1])[0] << 8) \
-                + (struct.unpack('B', n[2])[0] << 16) \
-                + (struct.unpack('B', n[3])[0] << 24)
+            return struct.unpack('B', n[0:1])[0] \
+                + (struct.unpack('B', n[1:2])[0] << 8) \
+                + (struct.unpack('B', n[2:3])[0] << 16) \
+                + (struct.unpack('B', n[3:4])[0] << 24)
         except TypeError:
             return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24)
 
@@ -401,7 +401,7 @@ class BinLogPacketWrapper(object):
 
         raise ValueError('Json type %d is not handled' % t)
 
-    def read_binary_json_type_inlined(self, t: bytes, large: bool) -> Optional[Union[bool, int]]:
+    def read_binary_json_type_inlined(self, t: int, large: bool) -> Optional[Union[bool, int]]:
         if t == JSONB_TYPE_LITERAL:
             value = self.read_uint32() if large else self.read_uint16()
             if value == JSONB_LITERAL_NULL:
@@ -475,7 +475,7 @@ class BinLogPacketWrapper(object):
             read_offset_or_inline(self, large)
             for _ in range(elements)]
 
-        def _read(x: Tuple[int, Optional[int], Optional[Union[bool, str]]]) -> int:
+        def _read(x: Tuple[int, Optional[bytes], Optional[Union[bool, int]]]) -> int:
             if x[1] is None:
                 return x[2]
             return self.read_binary_json_type(x[0], length)
@@ -499,7 +499,7 @@ class BinLogPacketWrapper(object):
 
 
 def read_offset_or_inline(packet: Union[MysqlPacket, BinLogPacketWrapper], large: bool) \
-        -> Tuple[int, Optional[int], Optional[Union[bool, str]]]:
+        -> Tuple[int, Optional[bytes], Optional[Union[bool, int]]]:
     t = packet.read_uint8()
 
     if t in (JSONB_TYPE_LITERAL,
