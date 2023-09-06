@@ -208,7 +208,7 @@ class BinLogStreamReader(object):
         self.__only_schemas: Optional[List[str]] = only_schemas
         self.__ignored_schemas: Optional[List[str]] = ignored_schemas
         self.__freeze_schema: bool = freeze_schema
-        self.__allowed_events: FrozenSet[type[BinLogEvent]] = self._allowed_event_list(
+        self.__allowed_events: FrozenSet[Type[BinLogEvent]] = self._allowed_event_list(
             only_events, ignored_events, filter_non_implemented_events)
         self.__fail_on_table_metadata_unavailable: bool = fail_on_table_metadata_unavailable
         self.__ignore_decode_errors: bool = ignore_decode_errors
@@ -216,7 +216,7 @@ class BinLogStreamReader(object):
 
         # We can't filter on packet level TABLE_MAP and rotate event because
         # we need them for handling other operations
-        self.__allowed_events_in_packet: FrozenSet[type[BinLogEvent]] = frozenset(
+        self.__allowed_events_in_packet: FrozenSet[Type[BinLogEvent]] = frozenset(
             [TableMapEvent, RotateEvent]).union(self.__allowed_events)
 
         self.__server_id: int = server_id
@@ -609,9 +609,9 @@ class BinLogStreamReader(object):
 
             return binlog_event.event
 
-    def _allowed_event_list(self, only_events: Optional[Union[Set[type(BinLogEvent)], List[str]]],
+    def _allowed_event_list(self, only_events: Optional[Union[Set[Type[BinLogEvent]], List[str]]],
                             ignored_events: Optional[List[str]], filter_non_implemented_events: bool) \
-            -> FrozenSet[type[BinLogEvent]]:
+            -> FrozenSet[Type[BinLogEvent]]:
         if only_events is not None:
             events = set(only_events)
         else:
