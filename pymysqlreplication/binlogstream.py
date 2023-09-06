@@ -192,7 +192,7 @@ class BinLogStreamReader(object):
             verify_checksum[bool]: If true, verify events read from the binary log by examining checksums.
         """
 
-        self.__connection_settings: Dict = connection_settings
+        self.__connection_settings = connection_settings
         self.__connection_settings.setdefault("charset", "utf8")
 
         self.__connected_stream: bool = False
@@ -418,7 +418,7 @@ class BinLogStreamReader(object):
                 gtid_set: GtidSet = GtidSet(self.auto_position)
                 encoded_data_size: int = gtid_set.encoded_length
 
-                header_size: int = (2 +  # binlog_flags
+                header_size = (2 +  # binlog_flags
                                4 +  # server_id
                                4 +  # binlog_name_info_size
                                4 +  # empty binlog name
