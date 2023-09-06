@@ -10,7 +10,7 @@ from pymysql.connections import Connection, MysqlPacket
 
 from .constants.BINLOG import TABLE_MAP_EVENT, ROTATE_EVENT, FORMAT_DESCRIPTION_EVENT
 from .event import (
-    QueryEvent, RotateEvent, FormatDescriptionEvent,
+    BinLogEvent, QueryEvent, RotateEvent, FormatDescriptionEvent,
     XidEvent, GtidEvent, StopEvent, XAPrepareEvent,
     BeginLoadQueryEvent, ExecuteLoadQueryEvent,
     HeartbeatLogEvent, NotImplementedEvent, MariadbGtidEvent,
@@ -22,7 +22,7 @@ from .gtid import GtidSet
 from .packet import BinLogPacketWrapper
 from .row_event import (
     UpdateRowsEvent, WriteRowsEvent, DeleteRowsEvent, TableMapEvent)
-from typing import ByteString, Union, Optional, List, Tuple, Dict, Any, Iterator, FrozenSet, Type
+from typing import ByteString, Union, Optional, List, Tuple, Dict, Any, Iterator, FrozenSet, Type, Set, Iterable
 
 try:
     from pymysql.constants.COMMAND import COM_BINLOG_DUMP_GTID
@@ -57,10 +57,10 @@ class ReportSlave(object):
 
         if isinstance(value, (tuple, list)):
             try:
-                self.hostname: str = value[0]
-                self.username: str = value[1]
-                self.password: str = value[2]
-                self.port: int = int(value[3])
+                self.hostname = value[0]
+                self.username = value[1]
+                self.password = value[2]
+                self.port = int(value[3])
             except IndexError:
                 pass
         elif isinstance(value, dict):
@@ -70,7 +70,7 @@ class ReportSlave(object):
                 except KeyError:
                     pass
         else:
-            self.hostname: Union[str, tuple] = value
+            self.hostname = value
 
     def __repr__(self) -> str:
         return '<ReportSlave hostname=%s username=%s password=%s port=%d>' % \
@@ -172,7 +172,7 @@ class BinLogStreamReader(object):
             ignored_schemas[List[str]]: An array with the schemas you want to skip
             freeze_schema[bool]: If true do not support ALTER TABLE. It's faster.
             skip_to_timestamp[float]: Ignore all events until reaching specified timestamp.
-            report_slave[ReportSlave]: Report slave in SHOW SLAVE HOSTS.
+            report_slave[Union[str, Tuple[str, str, str, int]]]: Report slave in SHOW SLAVE HOSTS.
             slave_uuid[str]: Report slave_uuid or replica_uuid in SHOW SLAVE HOSTS(MySQL 8.0.21-) or
                         SHOW REPLICAS(MySQL 8.0.22+) depends on your MySQL version.
             fail_on_table_metadata_unavailable[bool]: Should raise exception if we
@@ -199,7 +199,7 @@ class BinLogStreamReader(object):
         self.__connected_ctl: bool = False
         self.__resume_stream: bool = resume_stream
         self.__blocking: bool = blocking
-        self._ctl_connection_settings: Dict = ctl_connection_settings
+        self._ctl_connection_settings: Optional[Dict] = ctl_connection_settings
         if ctl_connection_settings:
             self._ctl_connection_settings.setdefault("charset", "utf8")
 
@@ -208,7 +208,7 @@ class BinLogStreamReader(object):
         self.__only_schemas: Optional[List[str]] = only_schemas
         self.__ignored_schemas: Optional[List[str]] = ignored_schemas
         self.__freeze_schema: bool = freeze_schema
-        self.__allowed_events: FrozenSet[str] = self._allowed_event_list(
+        self.__allowed_events: FrozenSet[type[BinLogEvent]] = self._allowed_event_list(
             only_events, ignored_events, filter_non_implemented_events)
         self.__fail_on_table_metadata_unavailable: bool = fail_on_table_metadata_unavailable
         self.__ignore_decode_errors: bool = ignore_decode_errors
@@ -216,7 +216,7 @@ class BinLogStreamReader(object):
 
         # We can't filter on packet level TABLE_MAP and rotate event because
         # we need them for handling other operations
-        self.__allowed_events_in_packet: FrozenSet[str] = frozenset(
+        self.__allowed_events_in_packet: FrozenSet[type[BinLogEvent]] = frozenset(
             [TableMapEvent, RotateEvent]).union(self.__allowed_events)
 
         self.__server_id: int = server_id
@@ -244,28 +244,28 @@ class BinLogStreamReader(object):
             self.pymysql_wrapper: Connection = pymysql_wrapper
         else:
             self.pymysql_wrapper: Optional[Union[Connection, Type[Connection]]] = pymysql.connect
-        self.mysql_version: Tuple = (0, 0, 0)
+        self.mysql_version: Tuple[int, int, int] = (0, 0, 0)
 
     def close(self) -> None:
         if self.__connected_stream:
             self._stream_connection.close()
-            self.__connected_stream: bool = False
+            self.__connected_stream = False
         if self.__connected_ctl:
             # break reference cycle between stream reader and underlying
             # mysql connection object
             self._ctl_connection._get_table_information = None
             self._ctl_connection.close()
-            self.__connected_ctl: bool = False
+            self.__connected_ctl = False
 
     def __connect_to_ctl(self) -> None:
         if not self._ctl_connection_settings:
-            self._ctl_connection_settings: Dict[str, Any] = dict(self.__connection_settings)
+            self._ctl_connection_settings: Dict = dict(self.__connection_settings)
         self._ctl_connection_settings["db"] = "information_schema"
         self._ctl_connection_settings["cursorclass"] = DictCursor
         self._ctl_connection_settings["autocommit"] = True
         self._ctl_connection: Connection = self.pymysql_wrapper(**self._ctl_connection_settings)
         self._ctl_connection._get_table_information = self.__get_table_information
-        self.__connected_ctl: bool = True
+        self.__connected_ctl = True
 
     def __checksum_enabled(self) -> bool:
         """
@@ -273,7 +273,7 @@ class BinLogStreamReader(object):
         """
         cur: Cursor = self._stream_connection.cursor()
         cur.execute("SHOW GLOBAL VARIABLES LIKE 'BINLOG_CHECKSUM'")
-        result: Optional[Tuple[str, str]] = cur.fetchone()
+        result: Optional[Tuple[Any]] = cur.fetchone()
         cur.close()
 
         if result is None:
@@ -305,7 +305,7 @@ class BinLogStreamReader(object):
         # log_file (string.EOF) -- filename of the binlog on the master
         self._stream_connection: Connection = self.pymysql_wrapper(**self.__connection_settings)
 
-        self.__use_checksum: bool = self.__checksum_enabled()
+        self.__use_checksum = self.__checksum_enabled()
 
         # If checksum is enabled we need to inform the server about the that
         # we support it
@@ -315,23 +315,23 @@ class BinLogStreamReader(object):
             cur.close()
 
         if self.slave_uuid:
-            cur: Cursor = self._stream_connection.cursor()
+            cur = self._stream_connection.cursor()
             cur.execute("SET @slave_uuid = %s, @replica_uuid = %s", (self.slave_uuid, self.slave_uuid))
             cur.close()
 
         if self.slave_heartbeat:
             # 4294967 is documented as the max value for heartbeats
-            net_timeout: float = float(self.__connection_settings.get('read_timeout',
+            net_timeout = float(self.__connection_settings.get('read_timeout',
                                                                4294967))
             # If heartbeat is too low, the connection will disconnect before,
             # this is also the behavior in mysql
-            heartbeat: float = float(min(net_timeout / 2., self.slave_heartbeat))
+            heartbeat = float(min(net_timeout / 2., self.slave_heartbeat))
             if heartbeat > 4294967:
                 heartbeat = 4294967
 
             # master_heartbeat_period is nanoseconds
-            heartbeat: int = int(heartbeat * 1000000000)
-            cur: Cursor = self._stream_connection.cursor()
+            heartbeat = int(heartbeat * 1000000000)
+            cur = self._stream_connection.cursor()
             cur.execute("SET @master_heartbeat_period= %d" % heartbeat)
             cur.close()
 
@@ -339,7 +339,7 @@ class BinLogStreamReader(object):
         # Mariadb, when it tries to replace GTID events with dummy ones. Given that this library understands GTID
         # events, setting the capability to 4 circumvents this error.
         # If the DB is mysql, this won't have any effect so no need to run this in a condition
-        cur: Cursor = self._stream_connection.cursor()
+        cur = self._stream_connection.cursor()
         cur.execute("SET @mariadb_slave_capability=4")
         cur.close()
 
@@ -347,14 +347,14 @@ class BinLogStreamReader(object):
 
         if not self.auto_position:
             if self.is_mariadb:
-                prelude = self.__set_mariadb_settings()
+                prelude: bytes = self.__set_mariadb_settings()
             else:
                 # only when log_file and log_pos both provided, the position info is
                 # valid, if not, get the current position from master
                 if self.log_file is None or self.log_pos is None:
-                    cur: Cursor = self._stream_connection.cursor()
+                    cur = self._stream_connection.cursor()
                     cur.execute("SHOW MASTER STATUS")
-                    master_status: Optional[Tuple[str, int, Any]] = cur.fetchone()
+                    master_status: Optional[Tuple[Any]] = cur.fetchone()
                     if master_status is None:
                         raise BinLogNotEnabled()
                     self.log_file, self.log_pos = master_status[:2]
@@ -368,7 +368,7 @@ class BinLogStreamReader(object):
                 else:
                     prelude += struct.pack('<I', 4)
 
-                flags: int = 0
+                flags = 0
 
                 if not self.__blocking:
                     flags |= 0x01  # BINLOG_DUMP_NON_BLOCK
@@ -378,7 +378,7 @@ class BinLogStreamReader(object):
                 prelude += self.log_file.encode()
         else:
             if self.is_mariadb:
-                prelude = self.__set_mariadb_settings()
+                prelude: bytes = self.__set_mariadb_settings()
             else:
                 # Format for mysql packet master_auto_position
                 #
@@ -425,10 +425,10 @@ class BinLogStreamReader(object):
                                8 +  # binlog_pos_info_size
                                4)  # encoded_data_size
 
-                prelude: ByteString = b'' + struct.pack('<i', header_size + encoded_data_size) \
+                prelude: bytes = b'' + struct.pack('<i', header_size + encoded_data_size) \
                           + bytes(bytearray([COM_BINLOG_DUMP_GTID]))
 
-                flags: int = 0
+                flags = 0
                 if not self.__blocking:
                     flags |= 0x01  # BINLOG_DUMP_NON_BLOCK
                 flags |= 0x04  # BINLOG_THROUGH_GTID
@@ -458,7 +458,7 @@ class BinLogStreamReader(object):
         else:
             self._stream_connection._write_bytes(prelude)
             self._stream_connection._next_seq_id = 1
-        self.__connected_stream: bool = True
+        self.__connected_stream = True
 
     def __set_mariadb_settings(self) -> bytes:
         # https://mariadb.com/kb/en/5-slave-registration/
@@ -517,7 +517,7 @@ class BinLogStreamReader(object):
                 if pymysql.__version__ < LooseVersion("0.6"):
                     pkt: MysqlPacket = self._stream_connection.read_packet()
                 else:
-                    pkt: MysqlPacket = self._stream_connection._read_packet()
+                    pkt = self._stream_connection._read_packet()
             except pymysql.OperationalError as error:
                 code, message = error.args
                 if code in MYSQL_EXPECTED_ERROR_CODES:
@@ -559,7 +559,7 @@ class BinLogStreamReader(object):
                 # invalidates all our cached table id to schema mappings. This means we have to load them all
                 # again for each logfile which is potentially wasted effort but we can't really do much better
                 # without being broken in restart case
-                self.table_map: Dict = {}
+                self.table_map = {}
             elif binlog_event.log_pos:
                 self.log_pos = binlog_event.log_pos
 
@@ -609,37 +609,17 @@ class BinLogStreamReader(object):
 
             return binlog_event.event
 
-    def _allowed_event_list(self, only_events: Optional[List[str]], ignored_events: Optional[List[str]],
-                            filter_non_implemented_events: bool) -> FrozenSet[str]:
+    def _allowed_event_list(self, only_events: Optional[Union[Set[type(BinLogEvent)], List[str]]],
+                            ignored_events: Optional[List[str]], filter_non_implemented_events: bool) \
+            -> FrozenSet[type[BinLogEvent]]:
         if only_events is not None:
             events = set(only_events)
         else:
-            events = set((
-                QueryEvent,
-                RotateEvent,
-                StopEvent,
-                FormatDescriptionEvent,
-                XAPrepareEvent,
-                XidEvent,
-                GtidEvent,
-                BeginLoadQueryEvent,
-                ExecuteLoadQueryEvent,
-                UpdateRowsEvent,
-                WriteRowsEvent,
-                DeleteRowsEvent,
-                TableMapEvent,
-                HeartbeatLogEvent,
-                NotImplementedEvent,
-                MariadbGtidEvent,
-                RowsQueryLogEvent,
-                MariadbAnnotateRowsEvent,
-                RandEvent,
-                MariadbStartEncryptionEvent,
-                MariadbGtidListEvent,
-                MariadbBinLogCheckPointEvent,
-                UserVarEvent,
-                PreviousGtidsEvent
-            ))
+            events = {QueryEvent, RotateEvent, StopEvent, FormatDescriptionEvent, XAPrepareEvent, XidEvent, GtidEvent,
+                      BeginLoadQueryEvent, ExecuteLoadQueryEvent, UpdateRowsEvent, WriteRowsEvent, DeleteRowsEvent,
+                      TableMapEvent, HeartbeatLogEvent, NotImplementedEvent, MariadbGtidEvent, RowsQueryLogEvent,
+                      MariadbAnnotateRowsEvent, RandEvent, MariadbStartEncryptionEvent, MariadbGtidListEvent,
+                      MariadbBinLogCheckPointEvent, UserVarEvent, PreviousGtidsEvent}
         if ignored_events is not None:
             for e in ignored_events:
                 events.remove(e)
