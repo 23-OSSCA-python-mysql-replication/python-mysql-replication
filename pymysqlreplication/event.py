@@ -6,7 +6,7 @@ import datetime
 import pymysql
 import decimal
 import zlib
-from pymysql.protocol import MysqlPacket
+from pymysql.connection import MysqlPacket
 from typing import Dict, List, NoReturn, Tuple, Type, Union
 from pymysqlreplication.constants.STATUS_VAR_KEY import *
 from pymysqlreplication.exceptions import StatusVariableMismatch
@@ -211,12 +211,7 @@ class MariadbAnnotateRowsEvent(BinLogEvent):
     If you want to check this binlog, change the value of the flag(line 382 of the 'binlogstream.py') option to 2
     https://mariadb.com/kb/en/annotate_rows_event/
 
-<<<<<<< HEAD
     :ivar sql_statement: str - The SQL statement
-=======
-    Attributes:
-        sql_statement: str - The SQL statement
->>>>>>> 8811fca (docs: add typing in MariadbGtidListEvent, MariadbAnnotateRowsEvent)
     """
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         super().__init__(from_packet, event_size, table_map, ctl_connection, **kwargs)
@@ -231,22 +226,11 @@ class MariadbGtidListEvent(BinLogEvent):
     for more information: `[see MariadbGtidListEvent] <https://mariadb.com/kb/en/gtid_list_event/>`_
 
     :ivar gtid_length: int - Number of GTIDs
-<<<<<<< HEAD
-    :ivar gtid_list: list - list of 'MariadbGtidObejct'
-
-    'MariadbGtidObejct' Attributes:
-        domain_id: Replication Domain ID
-        server_id: Server_ID
-        gtid_seq_no: GTID sequence
-        gtid: 'domain_id'+ 'server_id' + 'gtid_seq_no'
-=======
     :ivar gtid_list: List - list of 'MariadbGtidObejct'
-
     :ivar domain_id: int - Replication Domain ID (MariadbGtidObject)
     :ivar server_id: int -Server_ID (MariadbGtidObject)
     :ivar gtid_seq_no: int - GTID sequence (MariadbGtidObject)
     :ivar gtid: str - 'domain_id'+ 'server_id' + 'gtid_seq_no' (MariadbGtidObject)
->>>>>>> 8811fca (docs: add typing in MariadbGtidListEvent, MariadbAnnotateRowsEvent)
     """
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
 
@@ -270,15 +254,10 @@ class MariadbGtidListEvent(BinLogEvent):
 
 class RotateEvent(BinLogEvent):
     """
-<<<<<<< HEAD
     Change MySQL bin log file
     Represents information for the slave to know the name of the binary log it is going to receive.
-=======
-    The event changes MySQL bin log file.
-    It represents information for the slave to know the name of the binary log it is going to receive.
->>>>>>> 07b561d (add type hints to the rest of the events, improve docstring readability in some events)
 
-    For more information: `[see details] <https://dev.mysql.com/doc/dev/mysql-server/latest/classbinary__log_1_1Rotate__event.html>`_.
+    For more information: `[see RotateEvent] <https://dev.mysql.com/doc/dev/mysql-server/latest/classbinary__log_1_1Rotate__event.html>`_.
 
     In detail, the class creates the following python objects in the constructor:
 
@@ -309,19 +288,12 @@ class XAPrepareEvent(BinLogEvent):
     An XA prepare event is generated for a XA prepared transaction.
     Like Xid_event, it contains XID of the **prepared** transaction.
 
-    For more information: `[see details] <https://dev.mysql.com/doc/refman/8.0/en/xa-statements.html>`_.
-
-<<<<<<< HEAD
-    :ivar one_phase: current XA transaction commit method
-    :ivar xid_format_id: a number that identifies the format used by the gtrid and bqual values
-    :ivar xid: serialized XID representation of XA transaction (xid_gtrid + xid_bqual)
-=======
-    In detail, the class creates the following python objects in the constructor:
+    For more information: `[see XAPrepareEvent] <https://dev.mysql.com/doc/refman/8.0/en/xa-statements.html>`_.
 
     :ivar one_phase: str - current XA transaction commit method
     :ivar xid_format_id: int - a number that identifies the format used by the gtrid and bqual values
     :ivar xid: str - serialized XID representation of XA transaction (xid_gtrid + xid_bqual)
->>>>>>> 07b561d (add type hints to the rest of the events, improve docstring readability in some events)
+
     """
     def __init__(self, 
                  from_packet: Type[MysqlPacket], 
@@ -354,34 +326,13 @@ class XAPrepareEvent(BinLogEvent):
 
 class FormatDescriptionEvent(BinLogEvent):
     """
-<<<<<<< HEAD
-    Represents a Format Description Event in the MySQL binary log.
+    The event Represents a Format Description Event in the MySQL binary log.
 
     This event is written at the start of a binary log file for binlog version 4.
     It provides the necessary information to decode subsequent events in the file.
 
     :ivar binlog_version: int - Version of the binary log format.
     :ivar mysql_version_str: str - Server's MySQL version in string format.
-    """
-
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
-        super().__init__(from_packet, event_size, table_map,
-                                          ctl_connection, **kwargs)
-        self.binlog_version = struct.unpack('<H', self.packet.read(2))
-        self.mysql_version_str = self.packet.read(50).rstrip(b'\0').decode()
-        numbers = self.mysql_version_str.split('-')[0]
-        self.mysql_version = tuple(map(int, numbers.split('.')))
-=======
-    The event represents a Format Description Event in the MySQL binary log.
-    
-    This event is written at the start of a binary log file for binlog version 4.
-    It provides the necessary information to decode subsequent events in the file.
-
-    In detail, the class creates the following python objects in the constructor:
->>>>>>> 07b561d (add type hints to the rest of the events, improve docstring readability in some events)
-
-    :ivar binlog_version: str - Version of the binary log format
-    :ivar mysql_version_str: str - Server's MySQL version in string format
     """
     def __init__(self, 
                  from_packet: Type[MysqlPacket], 
@@ -407,24 +358,13 @@ class StopEvent(BinLogEvent):
 
 
 class XidEvent(BinLogEvent):
-<<<<<<< HEAD
     """
-    A COMMIT event generated when COMMIT of a transaction that modifies one or more tables of an XA-capable storage engine occurs.
-
-    For more information: `[see details] <https://mariadb.com/kb/en/xid_event/>`_.
-
-    :ivar xid: uint - Transaction ID for 2 Phase Commit.
-=======
->>>>>>> 07b561d (add type hints to the rest of the events, improve docstring readability in some events)
-    """
-    A COMMIT event is generated when COMMIT of a transaction that modifies 
+    A COMMIT event generated when COMMIT of a transaction that modifies 
     one or more tables of an XA-capable storage engine occurs.
 
-    For more information : `[see details] <https://mariadb.com/kb/en/xid_event/>`_.
+    For more information: `[see XidEvent] <https://mariadb.com/kb/en/xid_event/>`_.
 
-    In detail, the class creates the following python objects in the constructor:
- 
-    :ivar xid: int - Transaction ID for 2 Phase Commit
+    :ivar xid: uint - Transaction ID for 2 Phase Commit.
     """
     def __init__(self, 
                  from_packet: Type[MysqlPacket], 
@@ -457,19 +397,11 @@ class HeartbeatLogEvent(BinLogEvent):
     (see Binlog_sender::send_events in sql/rpl_binlog_sender.cc)
 
     Warning:
-<<<<<<< HEAD
     That makes 106 bytes of data for skipped event in the binlog.
     *this is also the case with GTID replication*.
     To mitigate such behavior, you are expected to keep the binlog small
     (see max_binlog_size, defaults to 1G).
     In any case, the timestamp is 0 (as in 1970-01-01T00:00:00).
-=======
-    That makes 106 bytes of data for skipped event in the binlog. 
-    *this is also the case with GTID replication*.  
-    To mitigate such behavior, you are expected to keep the binlog small 
-    (see max_binlog_size, defaults to 1G).  
-    In any case, the timestamp is 0 (as in 1970-01-01T00:00:00). 
->>>>>>> 07b561d (add type hints to the rest of the events, improve docstring readability in some events)
 
     In detail, the class creates the following python objects in the constructor:
 
@@ -532,15 +464,10 @@ class QueryEvent(BinLogEvent):
         self.schema: str = self.packet.read(self.schema_length)
         self.packet.advance(1)
 
-<<<<<<< HEAD
+        #string[EOF]    query
         query = self.packet.read(event_size - 13 - self.status_vars_length
                                  - self.schema_length - 1)
-        self.query = query.decode("utf-8", errors='backslashreplace')
-=======
-        self.query: str = self.packet.read(event_size - 13 - self.status_vars_length
-                                           - self.schema_length - 1).decode("utf-8")
->>>>>>> 07b561d (add type hints to the rest of the events, improve docstring readability in some events)
-        #string[EOF]    query
+        self.query:str = query.decode("utf-8", errors='backslashreplace')
 
     def _dump(self) -> None:
         """Dump the python objects for the event."""
@@ -605,11 +532,7 @@ class QueryEvent(BinLogEvent):
         elif key == Q_TIME_ZONE_CODE:                 # 0x05
             time_zone_len = self.packet.read_uint8()
             if time_zone_len:
-<<<<<<< HEAD
-                self.time_zone = self.packet.read(time_zone_len)
-=======
                 self.time_zone: str = self.packet.read(time_zone_len) 
->>>>>>> 07b561d (add type hints to the rest of the events, improve docstring readability in some events)
         elif key == Q_CATALOG_NZ_CODE:                # 0x06
             catalog_len = self.packet.read_uint8()
             if catalog_len:
@@ -756,19 +679,11 @@ class ExecuteLoadQueryEvent(BinLogEvent):
 
 class IntvarEvent(BinLogEvent):
     """
-<<<<<<< HEAD
     Stores the value of auto-increment variables.
     This event will be created just before a QueryEvent.
 
     :ivar type: int - 1 byte identifying the type of variable stored.
-=======
-    The event stores the value of auto-increment variables.
-    It will be created just before a QueryEvent.
-
-    In detail, the class creates the following python objects in the constructor:
-
-    :ivar type: int - 1 byte identifying the type of variable stored. \
->>>>>>> 07b561d (add type hints to the rest of the events, improve docstring readability in some events)
+    
     Can be either LAST_INSERT_ID_EVENT (1) or INSERT_ID_EVENT (2).
     :ivar value: int - The value of the variable
     """
@@ -804,11 +719,7 @@ class RandEvent(BinLogEvent):
     :ivar seed1: int - value for the first seed
     :ivar seed2: int - value for the second seed    
     """
-<<<<<<< HEAD
-    def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
-        super().__init__(from_packet, event_size, table_map,
-                                        ctl_connection, **kwargs)
-=======
+
     def __init__(self, 
                  from_packet: Type[MysqlPacket], 
                  event_size: int, 
@@ -817,7 +728,6 @@ class RandEvent(BinLogEvent):
                  **kwargs: str):
         super().__init__(from_packet, event_size, table_map, ctl_connection, **kwargs)
 
->>>>>>> 07b561d (add type hints to the rest of the events, improve docstring readability in some events)
         # Payload
         self._seed1: int = self.packet.read_uint64()
         self._seed2: int = self.packet.read_uint64()
