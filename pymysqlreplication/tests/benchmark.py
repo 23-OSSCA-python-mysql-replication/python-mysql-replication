@@ -8,18 +8,22 @@
 import pymysql
 import time
 import os
+
+from pymysql.connections import Connection
+from pymysql.cursors import Cursor
+
 from pymysqlreplication import BinLogStreamReader
 from pymysqlreplication.row_event import *
 
 
-def execute(con, query):
-    c = con.cursor()
+def execute(con: Connection, query: str) -> Cursor:
+    c: Cursor = con.cursor()
     c.execute(query)
     return c
 
 
-def consume_events():
-    stream = BinLogStreamReader(
+def consume_events() -> None:
+    stream: BinLogStreamReader = BinLogStreamReader(
         connection_settings=database,
         server_id=3,
         resume_stream=False,
@@ -27,8 +31,8 @@ def consume_events():
         only_events=[UpdateRowsEvent],
         only_tables=["test"],
     )
-    start = time.clock()
-    i = 0.0
+    start: float = time.clock()
+    i: float = 0.0
     for binlogevent in stream:
         i += 1.0
         if i % 1000 == 0:
@@ -45,17 +49,16 @@ database = {
     "db": "pymysqlreplication_test",
 }
 
-conn = pymysql.connect(**database)
+conn: Connection = pymysql.connect(**database)
 
 execute(conn, "DROP DATABASE IF EXISTS pymysqlreplication_test")
 execute(conn, "CREATE DATABASE pymysqlreplication_test")
-conn = pymysql.connect(**database)
+conn: Connection = pymysql.connect(**database)
 execute(conn, "CREATE TABLE test (i INT) ENGINE = MEMORY")
 execute(conn, "INSERT INTO test VALUES(1)")
 execute(conn, "CREATE TABLE test2 (i INT) ENGINE = MEMORY")
 execute(conn, "INSERT INTO test2 VALUES(1)")
 execute(conn, "RESET MASTER")
-
 
 if os.fork() != 0:
     print("Start insert data")
