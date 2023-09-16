@@ -21,17 +21,17 @@ x-mariadb: &mariadb
     --binlog-format=row
 
 services:
-  # percona-5.7:
-  #   <<: *mysql
-  #   image: percona:5.7
-  #   ports:
-  #     - "3306:3306"
+  percona-5.7:
+    <<: *mysql
+    image: percona:5.7
+    ports:
+      - "3306:3306"
 
-  # percona-5.7-ctl:
-  #   <<: *mysql
-  #   image: percona:5.7
-  #   ports:
-  #     - "3307:3306"
+  percona-5.7-ctl:
+    <<: *mysql
+    image: percona:5.7
+    ports:
+      - "3307:3306"
 
   mariadb-10.6:
     <<: *mariadb
