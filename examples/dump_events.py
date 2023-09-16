@@ -16,23 +16,28 @@ from pymysqlreplication.queryparser.MySqlParserListener import MySqlParserListen
 
 MYSQL_SETTINGS = {"host": "127.0.0.1", "port": 3308, "user": "root", "passwd": ""}
 
+
 class MyMySQLListener(MySqlParserListener):
     def enterEveryRule(self, ctx):
-        print("Type name:{} ,Entered:{}".format(type(ctx),ctx.getText()))
+        print("Type name:{} ,Entered:{}".format(type(ctx), ctx.getText()))
 
     def exitEveryRule(self, ctx):
         pass
         # print("Exited:", ctx.getText())
+
 
 def main():
     # server_id is your slave identifier, it should be unique.
     # set blocking to True if you want to block and wait for the next event at
     # the end of the stream
     stream = BinLogStreamReader(
-        connection_settings=MYSQL_SETTINGS, server_id=3, blocking=True,is_mariadb=True,annotate_rows_event=True
+        connection_settings=MYSQL_SETTINGS,
+        server_id=3,
+        blocking=True,
+        is_mariadb=True,
+        annotate_rows_event=True,
     )
 
-    
     for binlogevent in stream:
         if type(binlogevent) == MariadbAnnotateRowsEvent:
             input_stream = FileStream(binlogevent.sql_statement)

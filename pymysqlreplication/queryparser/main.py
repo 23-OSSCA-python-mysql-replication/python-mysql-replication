@@ -7,7 +7,7 @@ from MySqlParserListener import MySqlParserListener
 
 class MyMySQLListener(MySqlParserListener):
     def enterEveryRule(self, ctx):
-        print("Type name:{} ,Entered:{}".format(type(ctx),ctx.getText()))
+        print("Type name:{} ,Entered:{}".format(type(ctx), ctx.getText()))
 
     def exitEveryRule(self, ctx):
         pass
@@ -16,7 +16,9 @@ class MyMySQLListener(MySqlParserListener):
 
 def main():
     # Replace 'example.sql' with the path to the SQL file you want to parse
-    input_stream = FileStream("/Users/cucuridas/Desktop/oss/python-mysql-replication/pymysqlreplication/queryparser/example.sql")
+    input_stream = FileStream(
+        "/Users/cucuridas/Desktop/oss/python-mysql-replication/pymysqlreplication/queryparser/example.sql"
+    )
     lexer = MySqlLexer(input_stream)
     token_stream = CommonTokenStream(lexer)
     parser = MySqlParser(token_stream)
@@ -34,6 +36,6 @@ def main():
     # For instance, you could implement a Listener or a Visitor to walk the tree and do something useful.
     pass
 
-if __name__ == '__main__':
-    main()
 
+if __name__ == "__main__":
+    main()
