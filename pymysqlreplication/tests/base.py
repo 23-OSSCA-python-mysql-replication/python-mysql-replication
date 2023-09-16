@@ -25,7 +25,7 @@ class PyMySQLReplicationTestCase(base):
 
     def setUp(self, charset="utf8") -> None:
         # default
-        self.database: dict = {
+        self.database = {
             "host": os.environ.get("MYSQL_5_7") or "localhost",
             "user": "root",
             "passwd": "",
@@ -36,12 +36,12 @@ class PyMySQLReplicationTestCase(base):
         }
 
         self.conn_control: None | Connection = None
-        db: dict = copy.copy(self.database)
+        db = copy.copy(self.database)
         db["db"] = None
         self.connect_conn_control(db)
         self.execute("DROP DATABASE IF EXISTS pymysqlreplication_test")
         self.execute("CREATE DATABASE pymysqlreplication_test")
-        db: dict = copy.copy(self.database)
+        db = copy.copy(self.database)
         self.connect_conn_control(db)
         self.stream: BinLogStreamReader | None = None
         self.resetBinLog()
@@ -100,12 +100,12 @@ class PyMySQLReplicationTestCase(base):
         self.stream = None
 
     def execute(self, query: str) -> Cursor:
-        c: Cursor = self.conn_control.cursor()
+        c = self.conn_control.cursor()
         c.execute(query)
         return c
 
     def execute_with_args(self, query: str, args: dict | tuple | list | None) -> Cursor:
-        c: Cursor = self.conn_control.cursor()
+        c = self.conn_control.cursor()
         c.execute(query, args)
         return c
 
@@ -113,7 +113,7 @@ class PyMySQLReplicationTestCase(base):
         self.execute("RESET MASTER")
         if self.stream is not None:
             self.stream.close()
-        self.stream: BinLogStreamReader = BinLogStreamReader(
+        self.stream = BinLogStreamReader(
             self.database, server_id=1024, ignored_events=self.ignoredEvents()
         )
 
@@ -123,13 +123,13 @@ class PyMySQLReplicationTestCase(base):
         if version == 5.7:
             self.execute("SET @@sql_mode='NO_ENGINE_SUBSTITUTION'")
 
-    def bin_log_format(self) -> str:
+    def bin_log_format(self) -> str | None:
         query = "SELECT @@binlog_format"
         cursor = self.execute(query)
         result = cursor.fetchone()
         return result[0]
 
-    def bin_log_basename(self) -> str:
+    def bin_log_basename(self) -> str | None:
         cursor = self.execute("SELECT @@log_bin_basename")
         bin_log_basename = cursor.fetchone()[0]
         bin_log_basename = bin_log_basename.split("/")[-1]

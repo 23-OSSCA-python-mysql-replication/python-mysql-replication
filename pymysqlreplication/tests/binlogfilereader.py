@@ -1,8 +1,10 @@
 """Read binlog files"""
+from __future__ import annotations
+
 import struct
 
 from pymysqlreplication import constants
-from pymysqlreplication.event import FormatDescriptionEvent
+from pymysqlreplication.event import FormatDescriptionEvent, BinLogEvent
 from pymysqlreplication.event import QueryEvent
 from pymysqlreplication.event import RotateEvent
 from pymysqlreplication.event import XidEvent
@@ -13,16 +15,16 @@ from pymysqlreplication.row_event import WriteRowsEvent
 class SimpleBinLogFileReader(object):
     """Read binlog files"""
 
-    _expected_magic = b"\xfebin"
+    _expected_magic: bytes = b"\xfebin"
 
-    def __init__(self, file_path, only_events=None):
+    def __init__(self, file_path: str, only_events: None | BinLogEvent =None):
         self._current_event = None
         self._file = None
         self._file_path = file_path
         self._only_events = only_events
         self._pos = None
 
-    def fetchone(self):
+    def fetchone(self) -> None | BinLogEvent:
         """Fetch one record from the binlog file"""
         if self._pos is None or self._pos < 4:
             self._read_magic()
@@ -34,12 +36,12 @@ class SimpleBinLogFileReader(object):
             if self._filter_events(event):
                 return event
 
-    def truncatebinlog(self):
+    def truncatebinlog(self) -> None:
         """Truncate the binlog file at the current event"""
         if self._current_event is not None:
             self._file.truncate(self._current_event.pos)
 
-    def _filter_events(self, event):
+    def _filter_events(self, event) -> bool:
         """Return True if an event can be returned"""
         # It would be good if we could reuse the __event_map in
         # packet.BinLogPacketWrapper.
@@ -53,14 +55,14 @@ class SimpleBinLogFileReader(object):
         }.get(event.event_type)
         return event_type in self._only_events
 
-    def _open_file(self):
+    def _open_file(self) -> None:
         """Open the file at ``self._file_path``"""
         if self._file is None:
             self._file = open(self._file_path, "rb+")
             self._pos = self._file.tell()
             assert self._pos == 0
 
-    def _read_event(self):
+    def _read_event(self) -> None | SimpleBinLogEvent:
         """Read an event from the binlog file"""
         # Assuming a binlog version > 1
         headerlength = 19
