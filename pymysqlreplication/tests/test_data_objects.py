@@ -1,4 +1,5 @@
 import sys
+from typing import Type, List
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -15,10 +16,10 @@ __all__ = ["TestDataObjects"]
 
 
 class TestDataObjects(base.PyMySQLReplicationTestCase):
-    def ignoredEvents(self):
+    def ignoredEvents(self) -> List[Type[GtidEvent]]:
         return [GtidEvent]
 
-    def test_column_is_primary(self):
+    def test_column_is_primary(self) -> None:
         col = Column(
             1,
             {
@@ -35,7 +36,7 @@ class TestDataObjects(base.PyMySQLReplicationTestCase):
         )
         self.assertEqual(True, col.is_primary)
 
-    def test_column_not_primary(self):
+    def test_column_not_primary(self) -> None:
         col = Column(
             1,
             {
@@ -52,7 +53,7 @@ class TestDataObjects(base.PyMySQLReplicationTestCase):
         )
         self.assertEqual(False, col.is_primary)
 
-    def test_column_serializable(self):
+    def test_column_serializable(self) -> None:
         col = Column(
             1,
             {
@@ -81,7 +82,7 @@ class TestDataObjects(base.PyMySQLReplicationTestCase):
 
         self.assertEqual(col, Column(**serialized))
 
-    def test_table(self):
+    def test_table(self) -> None:
         tbl = Table(1, "test_schema", "test_table", [], [])
 
         serialized = tbl.serializable_data()
