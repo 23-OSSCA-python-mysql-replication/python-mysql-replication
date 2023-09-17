@@ -2,6 +2,7 @@
 """Test abnormal conditions, such as caused by a MySQL crash
 """
 import os.path
+from typing import List
 
 from pymysqlreplication.tests import base
 from pymysqlreplication.tests.binlogfilereader import SimpleBinLogFileReader
@@ -14,7 +15,7 @@ class TestAbnormalBinLogStreamReader(base.PyMySQLReplicationTestCase):
     """Test abnormal condition handling in the BinLogStreamReader"""
 
     @staticmethod
-    def ignored_events():
+    def ignored_events() -> List[GtidEvent]:
         """Events the BinLogStreamReader should ignore"""
         return [GtidEvent]
 
@@ -35,13 +36,13 @@ class TestAbnormalBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.execute("SET AUTOCOMMIT = 0")
         self.execute('INSERT INTO test(id, data) VALUES (1, "Hello")')
         self.execute("COMMIT")
-        timestamp = self.execute("SELECT UNIX_TIMESTAMP()").fetchone()[0]
+        timestamp: int = self.execute("SELECT UNIX_TIMESTAMP()").fetchone()[0]
         self.execute("FLUSH BINARY LOGS")
         self.execute('INSERT INTO test(id, data) VALUES (2, "Hi")')
         self.stream.close()
         self._remove_trailing_rotate_event_from_first_binlog()
 
-        binlog = self.execute("SHOW BINARY LOGS").fetchone()[0]
+        binlog: str = self.execute("SHOW BINARY LOGS").fetchone()[0]
 
         self.stream = BinLogStreamReader(
             self.database,
@@ -66,9 +67,9 @@ class TestAbnormalBinLogStreamReader(base.PyMySQLReplicationTestCase):
         This method removes the trailing RotateEvent to verify that the library
         properly handles this case.
         """
-        datadir = self.execute("SHOW VARIABLES LIKE 'datadir'").fetchone()[1]
-        binlog = self.execute("SHOW BINARY LOGS").fetchone()[0]
-        binlogpath = os.path.join(datadir, binlog)
+        datadir: str = self.execute("SHOW VARIABLES LIKE 'datadir'").fetchone()[1]
+        binlog: str = self.execute("SHOW BINARY LOGS").fetchone()[0]
+        binlogpath: str = os.path.join(datadir, binlog)
 
         reader = SimpleBinLogFileReader(binlogpath, only_events=[RotateEvent])
         for _ in reader:
