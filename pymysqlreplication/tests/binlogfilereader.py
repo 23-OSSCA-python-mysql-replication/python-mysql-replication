@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import struct
+from io import IOBase
 
 from pymysqlreplication import constants
 from pymysqlreplication.event import FormatDescriptionEvent, BinLogEvent
@@ -15,14 +16,14 @@ from pymysqlreplication.row_event import WriteRowsEvent
 class SimpleBinLogFileReader(object):
     """Read binlog files"""
 
-    _expected_magic: bytes = b"\xfebin"
+    _expected_magic = b"\xfebin"
 
-    def __init__(self, file_path: str, only_events: None | BinLogEvent =None):
-        self._current_event = None
-        self._file = None
-        self._file_path = file_path
-        self._only_events = only_events
-        self._pos = None
+    def __init__(self, file_path: str, only_events: None | BinLogEvent = None):
+        self._current_event: None | SimpleBinLogEvent = None
+        self._file: None | IOBase = None
+        self._file_path: str = file_path
+        self._only_events: BinLogEvent = only_events
+        self._pos: int = None
 
     def fetchone(self) -> None | BinLogEvent:
         """Fetch one record from the binlog file"""
@@ -114,15 +115,15 @@ class SimpleBinLogEvent(object):
     def __init__(self, header):
         """Initialize the Event with the event header"""
         unpacked = struct.unpack("<IBIIIH", header)
-        self.timestamp = unpacked[0]
-        self.event_type = unpacked[1]
-        self.server_id = unpacked[2]
-        self.event_size = unpacked[3]
-        self.log_pos = unpacked[4]
-        self.flags = unpacked[5]
+        self.timestamp: int = unpacked[0]
+        self.event_type: int = unpacked[1]
+        self.server_id: int = unpacked[2]
+        self.event_size: int = unpacked[3]
+        self.log_pos: int = unpacked[4]
+        self.flags: int = unpacked[5]
 
-        self.body = None
-        self.pos = None
+        self.body: None | str | bytes = None
+        self.pos: None | int = None
 
     def set_body(self, body):
         """Save the body bytes"""
