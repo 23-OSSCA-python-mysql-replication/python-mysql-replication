@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import copy
 import io
 import os
 import sys
 import time
+from typing import List, Type
 
 import pymysql
 
@@ -34,10 +37,10 @@ __all__ = [
 
 
 class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
-    def ignoredEvents(self):
+    def ignoredEvents(self) -> List[Type[Union[GtidEvent, PreviousGtidsEvent]]]:
         return [GtidEvent, PreviousGtidsEvent]
 
-    def test_allowed_event_list(self):
+    def test_allowed_event_list(self) -> None:
         self.assertEqual(len(self.stream._allowed_event_list(None, None, False)), 24)
         self.assertEqual(len(self.stream._allowed_event_list(None, None, True)), 23)
         self.assertEqual(
@@ -47,7 +50,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
             len(self.stream._allowed_event_list([RotateEvent], None, False)), 1
         )
 
-    def test_read_query_event(self):
+    def test_read_query_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
 
@@ -62,7 +65,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(event, QueryEvent)
         self.assertEqual(event.query, query)
 
-    def test_read_query_event_with_unicode(self):
+    def test_read_query_event_with_unicode(self) -> None:
         query = "CREATE TABLE `testÈ` (id INT NOT NULL AUTO_INCREMENT, dataÈ VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
 
@@ -77,7 +80,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(event, QueryEvent)
         self.assertEqual(event.query, query)
 
-    def test_reading_rotate_event(self):
+    def test_reading_rotate_event(self) -> None:
         query = "CREATE TABLE test_2 (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
 
@@ -117,7 +120,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(self.stream.fetchone(), XidEvent)
     """
 
-    def test_connection_stream_lost_event(self):
+    def test_connection_stream_lost_event(self) -> None:
         self.stream.close()
         self.stream = BinLogStreamReader(
             self.database,
@@ -146,7 +149,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
             event = self.stream.fetchone()
             self.assertIsNotNone(event)
 
-    def test_filtering_only_events(self):
+    def test_filtering_only_events(self) -> None:
         self.stream.close()
         self.stream = BinLogStreamReader(
             self.database, server_id=1024, only_events=[QueryEvent]
@@ -158,7 +161,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(event, QueryEvent)
         self.assertEqual(event.query, query)
 
-    def test_filtering_ignore_events(self):
+    def test_filtering_ignore_events(self) -> None:
         self.stream.close()
         self.stream = BinLogStreamReader(
             self.database, server_id=1024, ignored_events=[QueryEvent]
@@ -169,7 +172,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         event = self.stream.fetchone()
         self.assertIsInstance(event, RotateEvent)
 
-    def test_filtering_table_event_with_only_tables(self):
+    def test_filtering_table_event_with_only_tables(self) -> None:
         self.stream.close()
         self.assertEqual(self.bin_log_format(), "ROW")
         self.stream = BinLogStreamReader(
@@ -193,7 +196,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         event = self.stream.fetchone()
         self.assertEqual(event.table, "test_2")
 
-    def test_filtering_table_event_with_ignored_tables(self):
+    def test_filtering_table_event_with_ignored_tables(self) -> None:
         self.stream.close()
         self.assertEqual(self.bin_log_format(), "ROW")
         self.stream = BinLogStreamReader(
@@ -215,7 +218,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         event = self.stream.fetchone()
         self.assertEqual(event.table, "test_3")
 
-    def test_filtering_table_event_with_only_tables_and_ignored_tables(self):
+    def test_filtering_table_event_with_only_tables_and_ignored_tables(self) -> None:
         self.stream.close()
         self.assertEqual(self.bin_log_format(), "ROW")
         self.stream = BinLogStreamReader(
@@ -238,7 +241,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         event = self.stream.fetchone()
         self.assertEqual(event.table, "test_2")
 
-    def test_write_row_event(self):
+    def test_write_row_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "INSERT INTO test (data) VALUES('Hello World')"
@@ -266,7 +269,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.table, "test")
         self.assertEqual(event.columns[1].name, "data")
 
-    def test_delete_row_event(self):
+    def test_delete_row_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "INSERT INTO test (data) VALUES('Hello World')"
@@ -295,7 +298,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["id"], 1)
         self.assertEqual(event.rows[0]["values"]["data"], "Hello World")
 
-    def test_update_row_event(self):
+    def test_update_row_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "INSERT INTO test (data) VALUES('Hello')"
@@ -326,7 +329,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["after_values"]["id"], 1)
         self.assertEqual(event.rows[0]["after_values"]["data"], "World")
 
-    def test_minimal_image_write_row_event(self):
+    def test_minimal_image_write_row_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "SET SESSION binlog_row_image = 'minimal'"
@@ -356,7 +359,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.table, "test")
         self.assertEqual(event.columns[1].name, "data")
 
-    def test_minimal_image_delete_row_event(self):
+    def test_minimal_image_delete_row_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "INSERT INTO test (data) VALUES('Hello World')"
@@ -386,7 +389,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["id"], 1)
         self.assertEqual(event.rows[0]["values"]["data"], None)
 
-    def test_minimal_image_update_row_event(self):
+    def test_minimal_image_update_row_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "INSERT INTO test (data) VALUES('Hello')"
@@ -418,7 +421,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["after_values"]["id"], None)
         self.assertEqual(event.rows[0]["after_values"]["data"], "World")
 
-    def test_log_pos(self):
+    def test_log_pos(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "INSERT INTO test (data) VALUES('Hello')"
@@ -455,7 +458,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(self.stream.fetchone(), UpdateRowsEvent)
         self.assertIsInstance(self.stream.fetchone(), XidEvent)
 
-    def test_log_pos_handles_disconnects(self):
+    def test_log_pos_handles_disconnects(self) -> None:
         self.stream.close()
         self.stream = BinLogStreamReader(
             self.database,
@@ -488,7 +491,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
 
         self.assertGreater(self.stream.log_pos, 0)
 
-    def test_skip_to_timestamp(self):
+    def test_skip_to_timestamp(self) -> None:
         self.stream.close()
         query = "CREATE TABLE test_1 (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
@@ -508,7 +511,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(event, QueryEvent)
         self.assertEqual(event.query, query2)
 
-    def test_end_log_pos(self):
+    def test_end_log_pos(self) -> None:
         """Test end_log_pos parameter for BinLogStreamReader
 
         MUST BE TESTED IN DEFAULT SYSTEM VARIABLES SETTING
@@ -529,7 +532,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         # import os
         # os._exit(1)
 
-        binlog = self.execute("SHOW BINARY LOGS").fetchone()[0]
+        binlog: str = self.execute("SHOW BINARY LOGS").fetchone()[0]
 
         self.stream.close()
         self.stream = BinLogStreamReader(
@@ -545,8 +548,8 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(last_log_pos, 888)
         self.assertEqual(last_event_type, TABLE_MAP_EVENT)
 
-    def test_event_validation(self):
-        def create_binlog_packet_wrapper(pkt):
+    def test_event_validation(self) -> None:
+        def create_binlog_packet_wrapper(pkt) -> BinLogPacketWrapper:
             return BinLogPacketWrapper(
                 pkt,
                 self.stream.table_map,
@@ -586,7 +589,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         # Assume a bit flip occurred while data was being transmitted    q(1001000) -> U(0110111)
         modified_byte = b"U"
         wrong_event_data = (
-            correct_event_data[:1] + modified_byte + correct_event_data[2:]
+                correct_event_data[:1] + modified_byte + correct_event_data[2:]
         )
 
         packet = MysqlPacket(correct_event_data, 0)
@@ -599,10 +602,10 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
 
 
 class TestMultipleRowBinLogStreamReader(base.PyMySQLReplicationTestCase):
-    def ignoredEvents(self):
+    def ignoredEvents(self) -> List[Type[Union[GtidEvent, PreviousGtidsEvent]]]:
         return [GtidEvent, PreviousGtidsEvent]
 
-    def test_insert_multiple_row_event(self):
+    def test_insert_multiple_row_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
 
@@ -632,7 +635,7 @@ class TestMultipleRowBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[1]["values"]["id"], 2)
         self.assertEqual(event.rows[1]["values"]["data"], "World")
 
-    def test_update_multiple_row_event(self):
+    def test_update_multiple_row_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "INSERT INTO test (data) VALUES('Hello')"
@@ -670,7 +673,7 @@ class TestMultipleRowBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[1]["after_values"]["id"], 2)
         self.assertEqual(event.rows[1]["after_values"]["data"], "Toto")
 
-    def test_delete_multiple_row_event(self):
+    def test_delete_multiple_row_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "INSERT INTO test (data) VALUES('Hello')"
@@ -705,7 +708,7 @@ class TestMultipleRowBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[1]["values"]["id"], 2)
         self.assertEqual(event.rows[1]["values"]["data"], "World")
 
-    def test_drop_table(self):
+    def test_drop_table(self) -> None:
         self.execute("CREATE TABLE test (id INTEGER(11))")
         self.execute("INSERT INTO test VALUES (1)")
         self.execute("DROP TABLE test")
@@ -733,7 +736,7 @@ class TestMultipleRowBinLogStreamReader(base.PyMySQLReplicationTestCase):
 
         self.assertEqual([], event.rows)
 
-    def test_drop_table_tablemetadata_unavailable(self):
+    def test_drop_table_tablemetadata_unavailable(self) -> None:
         self.stream.close()
         self.execute("CREATE TABLE test (id INTEGER(11))")
         self.execute("INSERT INTO test VALUES (1)")
@@ -756,7 +759,7 @@ class TestMultipleRowBinLogStreamReader(base.PyMySQLReplicationTestCase):
             self.resetBinLog()
             assert had_error
 
-    def test_ignore_decode_errors(self):
+    def test_ignore_decode_errors(self) -> None:
         problematic_unicode_string = (
             b'[{"text":"\xed\xa0\xbd \xed\xb1\x8d Some string"}]'
         )
@@ -793,7 +796,7 @@ class TestMultipleRowBinLogStreamReader(base.PyMySQLReplicationTestCase):
         data = event.rows[0]["values"]["data"]
         self.assertEqual(data, '[{"text":"  Some string"}]')
 
-    def test_drop_column(self):
+    def test_drop_column(self) -> None:
         self.stream.close()
         self.execute("CREATE TABLE test_drop_column (id INTEGER(11), data VARCHAR(50))")
         self.execute("INSERT INTO test_drop_column VALUES (1, 'A value')")
@@ -814,7 +817,7 @@ class TestMultipleRowBinLogStreamReader(base.PyMySQLReplicationTestCase):
             self.resetBinLog()
 
     @unittest.expectedFailure
-    def test_alter_column(self):
+    def test_alter_column(self) -> None:
         self.stream.close()
         self.execute(
             "CREATE TABLE test_alter_column (id INTEGER(11), data VARCHAR(50))"
@@ -848,7 +851,7 @@ class TestMultipleRowBinLogStreamReader(base.PyMySQLReplicationTestCase):
 
 
 class TestCTLConnectionSettings(base.PyMySQLReplicationTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.stream.close()
         ctl_db = copy.copy(self.database)
@@ -873,11 +876,11 @@ class TestCTLConnectionSettings(base.PyMySQLReplicationTestCase):
             fail_on_table_metadata_unavailable=True,
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.ctl_conn_control.close()
 
-    def test_separate_ctl_settings_table_metadata_unavailable(self):
+    def test_separate_ctl_settings_table_metadata_unavailable(self) -> None:
         self.execute("CREATE TABLE test (id INTEGER(11))")
         self.execute("INSERT INTO test VALUES (1)")
         self.execute("COMMIT")
@@ -892,7 +895,7 @@ class TestCTLConnectionSettings(base.PyMySQLReplicationTestCase):
             self.resetBinLog()
             assert had_error
 
-    def test_separate_ctl_settings_no_error(self):
+    def test_separate_ctl_settings_no_error(self) -> None:
         self.execute("CREATE TABLE test (id INTEGER(11))")
         self.execute("INSERT INTO test VALUES (1)")
         self.execute("DROP TABLE test")
@@ -909,18 +912,18 @@ class TestCTLConnectionSettings(base.PyMySQLReplicationTestCase):
 
 
 class TestGtidBinLogStreamReader(base.PyMySQLReplicationTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         if not self.supportsGTID:
             raise unittest.SkipTest(
                 "database does not support GTID, skipping GTID tests"
             )
 
-    def test_read_query_event(self):
+    def test_read_query_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "SELECT @@global.gtid_executed;"
-        gtid = self.execute(query).fetchone()[0]
+        gtid: str = self.execute(query).fetchone()[0]
 
         self.stream.close()
         self.stream = BinLogStreamReader(
@@ -969,7 +972,7 @@ class TestGtidBinLogStreamReader(base.PyMySQLReplicationTestCase):
 
         self.assertEqual(secondevent.gno, firstevent.gno + 1)
 
-    def test_position_gtid(self):
+    def test_position_gtid(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "BEGIN;"
@@ -980,7 +983,7 @@ class TestGtidBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.execute(query)
 
         query = "SELECT @@global.gtid_executed;"
-        gtid = self.execute(query).fetchone()[0]
+        gtid: str = self.execute(query).fetchone()[0]
 
         query = "CREATE TABLE test2 (id INT NOT NULL, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
@@ -1007,7 +1010,7 @@ class TestGtidBinLogStreamReader(base.PyMySQLReplicationTestCase):
 
 
 class TestGtidRepresentation(unittest.TestCase):
-    def test_gtidset_representation(self):
+    def test_gtidset_representation(self) -> None:
         set_repr = (
             "57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56,"
             "4350f323-7565-4e59-8763-4b1b83a0ce0e:1-20"
@@ -1016,7 +1019,7 @@ class TestGtidRepresentation(unittest.TestCase):
         myset = GtidSet(set_repr)
         self.assertEqual(str(myset), set_repr)
 
-    def test_gtidset_representation_newline(self):
+    def test_gtidset_representation_newline(self) -> None:
         set_repr = (
             "57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56,"
             "4350f323-7565-4e59-8763-4b1b83a0ce0e:1-20"
@@ -1029,7 +1032,7 @@ class TestGtidRepresentation(unittest.TestCase):
         myset = GtidSet(mysql_repr)
         self.assertEqual(str(myset), set_repr)
 
-    def test_gtidset_representation_payload(self):
+    def test_gtidset_representation_payload(self) -> None:
         set_repr = (
             "57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56,"
             "4350f323-7565-4e59-8763-4b1b83a0ce0e:1-20"
@@ -1054,7 +1057,7 @@ class TestGtidRepresentation(unittest.TestCase):
 
 
 class GtidTests(unittest.TestCase):
-    def test_ordering(self):
+    def test_ordering(self) -> None:
         gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56")
         other = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:5-10")
         assert gtid.__lt__(other)
@@ -1068,13 +1071,13 @@ class GtidTests(unittest.TestCase):
         assert other.__gt__(gtid)
         assert other.__ge__(gtid)
 
-    def test_encode_decode(self):
+    def test_encode_decode(self) -> None:
         gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56")
         payload = gtid.encode()
         decoded = Gtid.decode(io.BytesIO(payload))
         assert str(gtid) == str(decoded)
 
-    def test_add_interval(self):
+    def test_add_interval(self) -> None:
         gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:5-56")
         end = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:57-58")
         assert (gtid + end).intervals == [(5, 59)]
@@ -1086,19 +1089,19 @@ class GtidTests(unittest.TestCase):
         within = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:5-6")
         assert (sparse + within).intervals == [(1, 11)]
 
-    def test_interval_non_merging(self):
+    def test_interval_non_merging(self) -> None:
         gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56")
         other = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:58-59")
         gtid = gtid + other
         self.assertEqual(str(gtid), "57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56:58-59")
 
-    def test_merging(self):
+    def test_merging(self) -> None:
         gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56")
         other = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:57-59")
         gtid = gtid + other
         self.assertEqual(str(gtid), "57b70f4e-20d3-11e5-a393-4a63946f7eac:1-59")
 
-    def test_sub_interval(self):
+    def test_sub_interval(self) -> None:
         gtid = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56")
         start = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:1-5")
         assert (gtid - start).intervals == [(6, 57)]
@@ -1109,7 +1112,7 @@ class GtidTests(unittest.TestCase):
         within = Gtid("57b70f4e-20d3-11e5-a393-4a63946f7eac:25-26")
         assert (gtid - within).intervals == [(1, 25), (27, 57)]
 
-    def test_parsing(self):
+    def test_parsing(self) -> None:
         with self.assertRaises(ValueError):
             Gtid(
                 "57b70f4e-20d3-11e5-a393-4a63946f7eac:1-5 57b70f4e-20d3-11e5-a393-4a63946f7eac:1-56"
@@ -1124,7 +1127,7 @@ class GtidTests(unittest.TestCase):
 
 
 class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TestStatementConnectionSetting, self).setUp()
         self.stream.close()
         self.stream = BinLogStreamReader(
@@ -1135,7 +1138,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         )
         self.execute("SET @@binlog_format='STATEMENT'")
 
-    def test_rand_event(self):
+    def test_rand_event(self) -> None:
         self.execute(
             "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data INT NOT NULL, PRIMARY KEY (id))"
         )
@@ -1151,7 +1154,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertEqual(type(expected_rand_event.seed1), int)
         self.assertEqual(type(expected_rand_event.seed2), int)
 
-    def test_user_var_string_event(self):
+    def test_user_var_string_event(self) -> None:
         self.execute(
             "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR(50), PRIMARY KEY (id))"
         )
@@ -1172,7 +1175,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertEqual(expected_user_var_event.type, 0)
         self.assertEqual(expected_user_var_event.charset, 33)
 
-    def test_user_var_real_event(self):
+    def test_user_var_real_event(self) -> None:
         self.execute(
             "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data REAL, PRIMARY KEY (id))"
         )
@@ -1193,7 +1196,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertEqual(expected_user_var_event.type, 1)
         self.assertEqual(expected_user_var_event.charset, 33)
 
-    def test_user_var_int_event(self):
+    def test_user_var_int_event(self) -> None:
         self.execute(
             "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data1 INT, data2 INT, data3 INT, PRIMARY KEY (id))"
         )
@@ -1236,7 +1239,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertEqual(expected_user_var_event.type, 2)
         self.assertEqual(expected_user_var_event.charset, 33)
 
-    def test_user_var_int24_event(self):
+    def test_user_var_int24_event(self) -> None:
         self.execute(
             "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data1 MEDIUMINT, data2 MEDIUMINT, data3 MEDIUMINT UNSIGNED, PRIMARY KEY (id))"
         )
@@ -1279,7 +1282,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertEqual(expected_user_var_event.type, 2)
         self.assertEqual(expected_user_var_event.charset, 33)
 
-    def test_user_var_longlong_event(self):
+    def test_user_var_longlong_event(self) -> None:
         self.execute(
             "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data1 BIGINT, data2 BIGINT, data3 BIGINT UNSIGNED, PRIMARY KEY (id))"
         )
@@ -1322,7 +1325,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertEqual(expected_user_var_event.type, 2)
         self.assertEqual(expected_user_var_event.charset, 33)
 
-    def test_user_var_decimal_event(self):
+    def test_user_var_decimal_event(self) -> None:
         self.execute(
             "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data1 DECIMAL, data2 DECIMAL, PRIMARY KEY (id))"
         )
@@ -1355,14 +1358,14 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertEqual(expected_user_var_event.type, 4)
         self.assertEqual(expected_user_var_event.charset, 33)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.execute("SET @@binlog_format='ROW'")
         self.assertEqual(self.bin_log_format(), "ROW")
         super(TestStatementConnectionSetting, self).tearDown()
 
 
 class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
-    def test_binlog_checkpoint_event(self):
+    def test_binlog_checkpoint_event(self) -> None:
         self.stream.close()
         self.stream = BinLogStreamReader(
             self.database, server_id=1023, blocking=False, is_mariadb=True
@@ -1393,7 +1396,7 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
 
 
 class TestMariadbBinlogStreamReader2(base.PyMySQLReplicationMariaDbTestCase):
-    def test_annotate_rows_event(self):
+    def test_annotate_rows_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         # Insert first event
@@ -1421,7 +1424,7 @@ class TestMariadbBinlogStreamReader2(base.PyMySQLReplicationMariaDbTestCase):
         self.assertEqual(event.sql_statement, insert_query)
         self.assertIsInstance(event, MariadbAnnotateRowsEvent)
 
-    def test_start_encryption_event(self):
+    def test_start_encryption_event(self) -> None:
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
         self.execute(query)
         query = "INSERT INTO test (data) VALUES('Hello World')"
@@ -1444,7 +1447,7 @@ class TestMariadbBinlogStreamReader2(base.PyMySQLReplicationMariaDbTestCase):
 
         try:
             with open(
-                f"{encryption_key_file_path}/.mariadb/no_encryption_key.key", "r"
+                    f"{encryption_key_file_path}/.mariadb/no_encryption_key.key", "r"
             ) as key_file:
                 first_line = key_file.readline()
                 key_version_from_key_file = int(first_line.split(";")[0])
@@ -1459,7 +1462,7 @@ class TestMariadbBinlogStreamReader2(base.PyMySQLReplicationMariaDbTestCase):
         self.assertEqual(type(nonce), bytes)
         self.assertEqual(len(nonce), 12)
 
-    def test_gtid_list_event(self):
+    def test_gtid_list_event(self) -> None:
         # set max_binlog_size to create new binlog file
         query = "SET GLOBAL max_binlog_size=4096"
         self.execute(query)
@@ -1493,15 +1496,15 @@ class TestMariadbBinlogStreamReader2(base.PyMySQLReplicationMariaDbTestCase):
 
 
 class TestRowsQueryLogEvents(base.PyMySQLReplicationTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TestRowsQueryLogEvents, self).setUp()
         self.execute("SET SESSION binlog_rows_query_log_events=1")
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.execute("SET SESSION binlog_rows_query_log_events=0")
         super(TestRowsQueryLogEvents, self).tearDown()
 
-    def test_rows_query_log_event(self):
+    def test_rows_query_log_event(self) -> None:
         self.stream.close()
         self.stream = BinLogStreamReader(
             self.database,
@@ -1518,10 +1521,10 @@ class TestRowsQueryLogEvents(base.PyMySQLReplicationTestCase):
 
 
 class TestLatin1(base.PyMySQLReplicationTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp(charset="latin1")
 
-    def test_query_event_latin1(self):
+    def test_query_event_latin1(self) -> None:
         """
         Ensure query events with a non-utf8 encoded query are parsed without errors.
         """
@@ -1538,7 +1541,7 @@ class TestLatin1(base.PyMySQLReplicationTestCase):
 
 
 class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TestOptionalMetaData, self).setUp()
         self.stream.close()
         self.stream = BinLogStreamReader(
@@ -1551,7 +1554,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
             self.skipTest("Mysql version is under 8.0.14 - pass TestOptionalMetaData")
         self.execute("SET GLOBAL binlog_row_metadata='FULL';")
 
-    def test_signedness(self):
+    def test_signedness(self) -> None:
         create_query = "CREATE TABLE test_signedness (col1 INT, col2 INT UNSIGNED);"
         insert_query = "INSERT INTO test_signedness VALUES (-10, 10);"
 
@@ -1563,7 +1566,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(event, TableMapEvent)
         self.assertEqual(event.optional_metadata.unsigned_column_list, [False, True])
 
-    def test_default_charset(self):
+    def test_default_charset(self) -> None:
         create_query = "CREATE TABLE test_default_charset (name VARCHAR(50)) CHARACTER SET utf8mb4;"
         insert_query = "INSERT INTO test_default_charset VALUES ('Hello, World!');"
 
@@ -1578,7 +1581,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
         else:
             self.assertEqual(event.optional_metadata.default_charset_collation, 255)
 
-    def test_column_charset(self):
+    def test_column_charset(self) -> None:
         create_query = "CREATE TABLE test_column_charset (col1 VARCHAR(50), col2 VARCHAR(50) CHARACTER SET binary, col3 VARCHAR(50) CHARACTER SET latin1);"
         insert_query = (
             "INSERT INTO test_column_charset VALUES ('python', 'mysql', 'replication');"
@@ -1595,7 +1598,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
         else:
             self.assertEqual(event.optional_metadata.column_charset, [255, 63, 8])
 
-    def test_column_name(self):
+    def test_column_name(self) -> None:
         create_query = "CREATE TABLE test_column_name (col_int INT, col_varchar VARCHAR(30), col_bool BOOL);"
         insert_query = "INSERT INTO test_column_name VALUES (1, 'Hello', true);"
 
@@ -1610,7 +1613,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
             ["col_int", "col_varchar", "col_bool"],
         )
 
-    def test_set_str_value(self):
+    def test_set_str_value(self) -> None:
         create_query = "CREATE TABLE test_set_str_value (skills SET('Programming', 'Writing', 'Design'));"
         insert_query = "INSERT INTO test_set_str_value VALUES ('Programming,Writing');"
 
@@ -1625,7 +1628,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
             [["Programming", "Writing", "Design"]],
         )
 
-    def test_enum_str_value(self):
+    def test_enum_str_value(self) -> None:
         create_query = "CREATE TABLE test_enum_str_value (pet ENUM('Dog', 'Cat'));"
         insert_query = "INSERT INTO test_enum_str_value VALUES ('Cat');"
 
@@ -1639,7 +1642,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
             event.optional_metadata.set_enum_str_value_list, [["Dog", "Cat"]]
         )
 
-    def test_geometry_type(self):
+    def test_geometry_type(self) -> None:
         create_query = "CREATE TABLE test_geometry_type (location POINT);"
         insert_query = "INSERT INTO test_geometry_type VALUES (Point(37.123, 125.987));"
 
@@ -1651,7 +1654,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(event, TableMapEvent)
         self.assertEqual(event.optional_metadata.geometry_type_list, [1])
 
-    def test_simple_primary_key(self):
+    def test_simple_primary_key(self) -> None:
         create_query = "CREATE TABLE test_simple_primary_key (c_key1 INT, c_key2 INT, c_not_key INT, PRIMARY KEY(c_key1, c_key2));"
         insert_query = "INSERT INTO test_simple_primary_key VALUES (1, 2, 3);"
 
@@ -1663,7 +1666,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(event, TableMapEvent)
         self.assertEqual(event.optional_metadata.simple_primary_key_list, [0, 1])
 
-    def test_primary_key_with_prefix(self):
+    def test_primary_key_with_prefix(self) -> None:
         create_query = "CREATE TABLE test_primary_key_with_prefix (c_key1 CHAR(100), c_key2 CHAR(10), c_not_key INT, c_key3 CHAR(100), PRIMARY KEY(c_key1(5), c_key2, c_key3(10)));"
         insert_query = (
             "INSERT INTO test_primary_key_with_prefix VALUES('1', '2', 3, '4');"
@@ -1679,7 +1682,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
             event.optional_metadata.primary_keys_with_prefix, {0: 5, 1: 0, 3: 10}
         )
 
-    def test_enum_and_set_default_charset(self):
+    def test_enum_and_set_default_charset(self) -> None:
         create_query = "CREATE TABLE test_enum_and_set_default_charset (pet ENUM('Dog', 'Cat'), skills SET('Programming', 'Writing', 'Design')) CHARACTER SET utf8mb4;"
         insert_query = (
             "INSERT INTO test_enum_and_set_default_charset VALUES('Dog', 'Design');"
@@ -1700,7 +1703,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
                 event.optional_metadata.enum_and_set_collation_list, [255, 255]
             )
 
-    def test_enum_and_set_column_charset(self):
+    def test_enum_and_set_column_charset(self) -> None:
         create_query = "CREATE TABLE test_enum_and_set_column_charset (pet ENUM('Dog', 'Cat') CHARACTER SET utf8mb4, number SET('00', '01', '10', '11') CHARACTER SET binary);"
         insert_query = (
             "INSERT INTO test_enum_and_set_column_charset VALUES('Cat', '10');"
@@ -1721,7 +1724,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
                 event.optional_metadata.enum_and_set_collation_list, [255, 63]
             )
 
-    def test_visibility(self):
+    def test_visibility(self) -> None:
         create_query = "CREATE TABLE test_visibility (name VARCHAR(50), secret_key VARCHAR(50) DEFAULT 'qwerty' INVISIBLE);"
         insert_query = "INSERT INTO test_visibility VALUES('Audrey');"
 
@@ -1734,7 +1737,7 @@ class TestOptionalMetaData(base.PyMySQLReplicationTestCase):
         if not self.isMariaDB():
             self.assertEqual(event.optional_metadata.visibility_list, [True, False])
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.execute("SET GLOBAL binlog_row_metadata='MINIMAL';")
         super(TestOptionalMetaData, self).tearDown()
 
