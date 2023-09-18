@@ -161,8 +161,10 @@ class PyMySQLReplicationMariaDbTestCase(PyMySQLReplicationTestCase):
         bin_log_basename = bin_log_basename.split("/")[-1]
         return bin_log_basename
 
-class PyMySQLReplicationPercona8TestCase(PyMySQLReplicationTestCase):
+
+class PyMySQLReplicationVersion8TestCase(PyMySQLReplicationTestCase):
     def setUp(self):
+        super().setUp()
         # default
         self.database = {
             "host": os.environ.get("MYSQL_8_0") or "localhost",
@@ -184,3 +186,5 @@ class PyMySQLReplicationPercona8TestCase(PyMySQLReplicationTestCase):
         self.connect_conn_control(db)
         self.stream = None
         self.resetBinLog()
+        self.isMySQL80AndMore()
+        self.__is_mariaDB = None
