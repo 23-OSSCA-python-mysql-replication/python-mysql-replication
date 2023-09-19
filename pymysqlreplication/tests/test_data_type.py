@@ -4,6 +4,7 @@ import copy
 import platform
 import sys
 import json
+from typing import List, Type, Any
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -18,12 +19,11 @@ from pymysqlreplication.row_event import *
 from pymysqlreplication.event import *
 from pymysqlreplication._compat import text_type
 
-
 __all__ = ["TestDataType"]
 
 
-def to_binary_dict(d):
-    def encode_value(v):
+def to_binary_dict(d: dict) -> dict:
+    def encode_value(v: Any) -> Any:
         if isinstance(v, text_type):
             return v.encode()
         if isinstance(v, list):
@@ -34,10 +34,10 @@ def to_binary_dict(d):
 
 
 class TestDataType(base.PyMySQLReplicationTestCase):
-    def ignoredEvents(self):
+    def ignoredEvents(self) -> List[Type[Union[GtidEvent, PreviousGtidsEvent]]]:
         return [GtidEvent, PreviousGtidsEvent]
 
-    def create_and_insert_value(self, create_query, insert_query):
+    def create_and_insert_value(self, create_query: str, insert_query: str) -> WriteRowsEvent:
         self.execute(create_query)
         self.execute(insert_query)
         self.execute("COMMIT")
@@ -60,7 +60,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertIsInstance(event, WriteRowsEvent)
         return event
 
-    def create_table(self, create_query):
+    def create_table(self, create_query: str) -> QueryEvent:
         """Create table
 
         Create table in db and return query event.
@@ -80,7 +80,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
 
         return event
 
-    def create_and_get_tablemap_event(self, bit):
+    def create_and_get_tablemap_event(self, bit) -> TableMapEvent:
         """Create table and return tablemap event
 
         Returns:
@@ -104,19 +104,19 @@ class TestDataType(base.PyMySQLReplicationTestCase):
 
         return event
 
-    def test_varbinary(self):
+    def test_varbinary(self) -> None:
         create_query = "CREATE TABLE test(b VARBINARY(4))"
         insert_query = "INSERT INTO test VALUES(UNHEX('ff010000'))"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["b"], b"\xff\x01\x00\x00")
 
-    def test_fixed_length_binary(self):
+    def test_fixed_length_binary(self) -> None:
         create_query = "CREATE TABLE test(b BINARY(4))"
         insert_query = "INSERT INTO test VALUES(UNHEX('ff010000'))"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["b"], b"\xff\x01\x00\x00")
 
-    def test_decimal(self):
+    def test_decimal(self) -> None:
         create_query = "CREATE TABLE test (test DECIMAL(2,1))"
         insert_query = "INSERT INTO test VALUES(4.2)"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -124,7 +124,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.columns[0].decimals, 1)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("4.2"))
 
-    def test_decimal_long_values(self):
+    def test_decimal_long_values(self) -> None:
         create_query = "CREATE TABLE test (\
             test DECIMAL(20,10) \
         )"
@@ -132,7 +132,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("42000.123456"))
 
-    def test_decimal_long_values_1(self):
+    def test_decimal_long_values_1(self) -> None:
         create_query = "CREATE TABLE test (\
             test DECIMAL(20,10) \
         )"
@@ -140,7 +140,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("9000000123.123456"))
 
-    def test_decimal_long_values_2(self):
+    def test_decimal_long_values_2(self) -> None:
         create_query = "CREATE TABLE test (\
             test DECIMAL(20,10) \
         )"
@@ -150,7 +150,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             event.rows[0]["values"]["test"], Decimal("9000000123.0000012345")
         )
 
-    def test_decimal_negative_values(self):
+    def test_decimal_negative_values(self) -> None:
         create_query = "CREATE TABLE test (\
             test DECIMAL(20,10) \
         )"
@@ -158,7 +158,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("-42000.123456"))
 
-    def test_decimal_two_values(self):
+    def test_decimal_two_values(self) -> None:
         create_query = "CREATE TABLE test (\
             test DECIMAL(2,1), \
             test2 DECIMAL(20,10) \
@@ -168,13 +168,13 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("4.2"))
         self.assertEqual(event.rows[0]["values"]["test2"], Decimal("42000.123456"))
 
-    def test_decimal_with_zero_scale_1(self):
+    def test_decimal_with_zero_scale_1(self) -> None:
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(10)"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("10"))
 
-    def test_decimal_with_zero_scale_2(self):
+    def test_decimal_with_zero_scale_2(self) -> None:
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(12345678912345678912345)"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -182,19 +182,19 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             event.rows[0]["values"]["test"], Decimal("12345678912345678912345")
         )
 
-    def test_decimal_with_zero_scale_3(self):
+    def test_decimal_with_zero_scale_3(self) -> None:
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(100000.0)"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("100000"))
 
-    def test_decimal_with_zero_scale_4(self):
+    def test_decimal_with_zero_scale_4(self) -> None:
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(-100000.0)"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], Decimal("-100000"))
 
-    def test_decimal_with_zero_scale_6(self):
+    def test_decimal_with_zero_scale_6(self) -> None:
         create_query = "CREATE TABLE test (test DECIMAL(23,0))"
         insert_query = "INSERT INTO test VALUES(-1234567891234567891234)"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -202,14 +202,14 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             event.rows[0]["values"]["test"], Decimal("-1234567891234567891234")
         )
 
-    def test_tiny(self):
+    def test_tiny(self) -> None:
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, test TINYINT)"
         insert_query = "INSERT INTO test VALUES(255, -128)"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["id"], 255)
         self.assertEqual(event.rows[0]["values"]["test"], -128)
 
-    def test_tiny_maps_to_boolean_true(self):
+    def test_tiny_maps_to_boolean_true(self) -> None:
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, test BOOLEAN)"
         insert_query = "INSERT INTO test VALUES(1, TRUE)"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -217,7 +217,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(type(event.rows[0]["values"]["test"]), type(1))
         self.assertEqual(event.rows[0]["values"]["test"], 1)
 
-    def test_tiny_maps_to_boolean_false(self):
+    def test_tiny_maps_to_boolean_false(self) -> None:
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, test BOOLEAN)"
         insert_query = "INSERT INTO test VALUES(1, FALSE)"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -225,7 +225,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(type(event.rows[0]["values"]["test"]), type(0))
         self.assertEqual(event.rows[0]["values"]["test"], 0)
 
-    def test_tiny_maps_to_none(self):
+    def test_tiny_maps_to_none(self) -> None:
         create_query = "CREATE TABLE test (id TINYINT UNSIGNED NOT NULL, test BOOLEAN)"
         insert_query = "INSERT INTO test VALUES(1, NULL)"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -233,13 +233,13 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(type(event.rows[0]["values"]["test"]), type(None))
         self.assertEqual(event.rows[0]["values"]["test"], None)
 
-    def test_tiny_maps_to_none_2(self):
+    def test_tiny_maps_to_none_2(self) -> None:
         create_query = "CREATE TABLE test (test BOOLEAN)"
         insert_query = "INSERT INTO test VALUES(NULL)"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], None)
 
-    def test_short(self):
+    def test_short(self) -> None:
         create_query = (
             "CREATE TABLE test (id SMALLINT UNSIGNED NOT NULL, test SMALLINT)"
         )
@@ -248,28 +248,28 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["id"], 65535)
         self.assertEqual(event.rows[0]["values"]["test"], -32768)
 
-    def test_long(self):
+    def test_long(self) -> None:
         create_query = "CREATE TABLE test (id INT UNSIGNED NOT NULL, test INT)"
         insert_query = "INSERT INTO test VALUES(4294967295, -2147483648)"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["id"], 4294967295)
         self.assertEqual(event.rows[0]["values"]["test"], -2147483648)
 
-    def test_float(self):
+    def test_float(self) -> None:
         create_query = "CREATE TABLE test (id FLOAT NOT NULL, test FLOAT)"
         insert_query = "INSERT INTO test VALUES(42.42, -84.84)"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(round(event.rows[0]["values"]["id"], 2), 42.42)
         self.assertEqual(round(event.rows[0]["values"]["test"], 2), -84.84)
 
-    def test_double(self):
+    def test_double(self) -> None:
         create_query = "CREATE TABLE test (id DOUBLE NOT NULL, test DOUBLE)"
         insert_query = "INSERT INTO test VALUES(42.42, -84.84)"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(round(event.rows[0]["values"]["id"], 2), 42.42)
         self.assertEqual(round(event.rows[0]["values"]["test"], 2), -84.84)
 
-    def test_timestamp(self):
+    def test_timestamp(self) -> None:
         create_query = "CREATE TABLE test (test TIMESTAMP);"
         insert_query = "INSERT INTO test VALUES('1984-12-03 12:33:07')"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -277,7 +277,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             event.rows[0]["values"]["test"], datetime.datetime(1984, 12, 3, 12, 33, 7)
         )
 
-    def test_timestamp_mysql56(self):
+    def test_timestamp_mysql56(self) -> None:
         if not self.isMySQL56AndMore():
             self.skipTest("Not supported in this version of MySQL")
         self.set_sql_mode()
@@ -324,7 +324,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             datetime.datetime(1984, 12, 3, 12, 33, 7, 123456),
         )
 
-    def test_longlong(self):
+    def test_longlong(self) -> None:
         create_query = "CREATE TABLE test (id BIGINT UNSIGNED NOT NULL, test BIGINT)"
         insert_query = (
             "INSERT INTO test VALUES(18446744073709551615, -9223372036854775808)"
@@ -333,7 +333,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["id"], 18446744073709551615)
         self.assertEqual(event.rows[0]["values"]["test"], -9223372036854775808)
 
-    def test_int24(self):
+    def test_int24(self) -> None:
         create_query = "CREATE TABLE test (id MEDIUMINT UNSIGNED NOT NULL, test MEDIUMINT, test2 MEDIUMINT, test3 MEDIUMINT, test4 MEDIUMINT, test5 MEDIUMINT)"
         insert_query = "INSERT INTO test VALUES(16777215, 8388607, -8388608, 8, -8, 0)"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -344,20 +344,20 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test4"], -8)
         self.assertEqual(event.rows[0]["values"]["test5"], 0)
 
-    def test_date(self):
+    def test_date(self) -> None:
         create_query = "CREATE TABLE test (test DATE);"
         insert_query = "INSERT INTO test VALUES('1984-12-03')"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], datetime.date(1984, 12, 3))
 
-    def test_zero_date(self):
+    def test_zero_date(self) -> None:
         create_query = "CREATE TABLE test (id INTEGER, test DATE, test2 DATE);"
         insert_query = "INSERT INTO test (id, test2) VALUES(1, '0000-01-21')"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], None)
         self.assertEqual(event.rows[0]["values"]["test2"], None)
 
-    def test_zero_month(self):
+    def test_zero_month(self) -> None:
         self.set_sql_mode()
         create_query = "CREATE TABLE test (id INTEGER, test DATE, test2 DATE);"
         insert_query = "INSERT INTO test (id, test2) VALUES(1, '2015-00-21')"
@@ -365,7 +365,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], None)
         self.assertEqual(event.rows[0]["values"]["test2"], None)
 
-    def test_zero_day(self):
+    def test_zero_day(self) -> None:
         self.set_sql_mode()
         create_query = "CREATE TABLE test (id INTEGER, test DATE, test2 DATE);"
         insert_query = "INSERT INTO test (id, test2) VALUES(1, '2015-05-00')"
@@ -373,7 +373,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], None)
         self.assertEqual(event.rows[0]["values"]["test2"], None)
 
-    def test_time(self):
+    def test_time(self) -> None:
         create_query = "CREATE TABLE test (test1 TIME, test2 TIME);"
         insert_query = "INSERT INTO test VALUES('838:59:59', '-838:59:59')"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -386,7 +386,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             datetime.timedelta(microseconds=-(((838 * 60) + 59) * 60 + 59) * 1000000),
         )
 
-    def test_time2(self):
+    def test_time2(self) -> None:
         if not self.isMySQL56AndMore():
             self.skipTest("Not supported in this version of MySQL")
         create_query = "CREATE TABLE test (test1 TIME(6), test2 TIME(6));"
@@ -407,13 +407,13 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             ),
         )
 
-    def test_zero_time(self):
+    def test_zero_time(self) -> None:
         create_query = "CREATE TABLE test (id INTEGER, test TIME NOT NULL DEFAULT 0);"
         insert_query = "INSERT INTO test (id) VALUES(1)"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], datetime.timedelta(seconds=0))
 
-    def test_datetime(self):
+    def test_datetime(self) -> None:
         create_query = "CREATE TABLE test (test DATETIME);"
         insert_query = "INSERT INTO test VALUES('1984-12-03 12:33:07')"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -421,7 +421,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             event.rows[0]["values"]["test"], datetime.datetime(1984, 12, 3, 12, 33, 7)
         )
 
-    def test_zero_datetime(self):
+    def test_zero_datetime(self) -> None:
         self.set_sql_mode()
         create_query = (
             "CREATE TABLE test (id INTEGER, test DATETIME NOT NULL DEFAULT 0);"
@@ -430,14 +430,14 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], None)
 
-    def test_broken_datetime(self):
+    def test_broken_datetime(self) -> None:
         self.set_sql_mode()
         create_query = "CREATE TABLE test (test DATETIME NOT NULL);"
         insert_query = "INSERT INTO test VALUES('2013-00-00 00:00:00')"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], None)
 
-    def test_year(self):
+    def test_year(self) -> None:
         if self.isMySQL57():
             # https://dev.mysql.com/doc/refman/5.7/en/migrating-to-year4.html
             self.skipTest("YEAR(2) is unsupported in mysql 5.7")
@@ -447,14 +447,14 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["a"], 1984)
         self.assertEqual(event.rows[0]["values"]["b"], 1984)
 
-    def test_varchar(self):
+    def test_varchar(self) -> None:
         create_query = "CREATE TABLE test (test VARCHAR(242)) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello')"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], "Hello")
         self.assertEqual(event.columns[0].max_length, 242)
 
-    def test_bit(self):
+    def test_bit(self) -> None:
         create_query = "CREATE TABLE test (test BIT(6), \
                 test2 BIT(16), \
                 test3 BIT(12), \
@@ -482,14 +482,14 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             "1101011010110100100111100011010100010100101110111011101011011010",
         )
 
-    def test_enum(self):
+    def test_enum(self) -> None:
         create_query = "CREATE TABLE test (test ENUM('a', 'ba', 'c'), test2 ENUM('a', 'ba', 'c')) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('ba', 'a')"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], "ba")
         self.assertEqual(event.rows[0]["values"]["test2"], "a")
 
-    def test_enum_empty_string(self):
+    def test_enum_empty_string(self) -> None:
         create_query = "CREATE TABLE test (test ENUM('a', 'ba', 'c'), test2 ENUM('a', 'ba', 'c')) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('ba', 'asdf')"
         last_sql_mode = self.execute("SELECT @@SESSION.sql_mode;").fetchall()[0][0]
@@ -500,42 +500,42 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test"], "ba")
         self.assertEqual(event.rows[0]["values"]["test2"], "")
 
-    def test_set(self):
+    def test_set(self) -> None:
         create_query = "CREATE TABLE test (test SET('a', 'ba', 'c'), test2 SET('a', 'ba', 'c')) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('ba,a,c', 'a,c')"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], set(("a", "ba", "c")))
         self.assertEqual(event.rows[0]["values"]["test2"], set(("a", "c")))
 
-    def test_tiny_blob(self):
+    def test_tiny_blob(self) -> None:
         create_query = "CREATE TABLE test (test TINYBLOB, test2 TINYTEXT) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello', 'World')"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], b"Hello")
         self.assertEqual(event.rows[0]["values"]["test2"], "World")
 
-    def test_medium_blob(self):
+    def test_medium_blob(self) -> None:
         create_query = "CREATE TABLE test (test MEDIUMBLOB, test2 MEDIUMTEXT) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello', 'World')"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], b"Hello")
         self.assertEqual(event.rows[0]["values"]["test2"], "World")
 
-    def test_long_blob(self):
+    def test_long_blob(self) -> None:
         create_query = "CREATE TABLE test (test LONGBLOB, test2 LONGTEXT) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello', 'World')"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], b"Hello")
         self.assertEqual(event.rows[0]["values"]["test2"], "World")
 
-    def test_blob(self):
+    def test_blob(self) -> None:
         create_query = "CREATE TABLE test (test BLOB, test2 TEXT) CHARACTER SET latin1 COLLATE latin1_bin;"
         insert_query = "INSERT INTO test VALUES('Hello', 'World')"
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], b"Hello")
         self.assertEqual(event.rows[0]["values"]["test2"], "World")
 
-    def test_string(self):
+    def test_string(self) -> None:
         create_query = (
             "CREATE TABLE test (test CHAR(12)) CHARACTER SET latin1 COLLATE latin1_bin;"
         )
@@ -543,7 +543,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], "Hello")
 
-    def test_geometry(self):
+    def test_geometry(self) -> None:
         create_query = "CREATE TABLE test (test GEOMETRY);"
         insert_query = "INSERT INTO test VALUES(GeomFromText('POINT(1 1)'))"
         event = self.create_and_insert_value(create_query, insert_query)
@@ -552,7 +552,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             b"\x00\x00\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf0?\x00\x00\x00\x00\x00\x00\xf0?",
         )
 
-    def test_json(self):
+    def test_json(self) -> None:
         if not self.isMySQL57():
             self.skipTest("Json is only supported in mysql 5.7")
         create_query = "CREATE TABLE test (id int, value json);"
@@ -563,7 +563,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             {b"my_key": b"my_val", b"my_key2": b"my_val2"},
         )
 
-    def test_json_array(self):
+    def test_json_array(self) -> None:
         if not self.isMySQL57():
             self.skipTest("Json is only supported in mysql 5.7")
         create_query = "CREATE TABLE test (id int, value json);"
@@ -573,7 +573,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["value"], [b"my_val", b"my_val2"])
 
-    def test_json_large(self):
+    def test_json_large(self) -> None:
         if not self.isMySQL57():
             self.skipTest("Json is only supported in mysql 5.7")
         data = dict(
@@ -581,13 +581,13 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         )  # Make it large enough to reach 2^16 length
         create_query = "CREATE TABLE test (id int, value json);"
         insert_query = (
-            """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
+                """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
         )
         event = self.create_and_insert_value(create_query, insert_query)
 
         self.assertEqual(event.rows[0]["values"]["value"], to_binary_dict(data))
 
-    def test_json_large_array(self):
+    def test_json_large_array(self) -> None:
         "Test json array larger than 64k bytes"
         if not self.isMySQL57():
             self.skipTest("Json is only supported in mysql 5.7")
@@ -599,7 +599,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["value"], to_binary_dict(large_array))
 
-    def test_json_large_with_literal(self):
+    def test_json_large_with_literal(self) -> None:
         if not self.isMySQL57():
             self.skipTest("Json is only supported in mysql 5.7")
         data = dict(
@@ -607,13 +607,13 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         )  # Make it large with literal
         create_query = "CREATE TABLE test (id int, value json);"
         insert_query = (
-            """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
+                """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
         )
         event = self.create_and_insert_value(create_query, insert_query)
 
         self.assertEqual(event.rows[0]["values"]["value"], to_binary_dict(data))
 
-    def test_json_types(self):
+    def test_json_types(self) -> None:
         if not self.isMySQL57():
             self.skipTest("Json is only supported in mysql 5.7")
 
@@ -635,7 +635,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             data = {"foo": t}
             create_query = "CREATE TABLE test (id int, value json);"
             insert_query = (
-                """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
+                    """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
             )
             event = self.create_and_insert_value(create_query, insert_query)
             self.assertEqual(event.rows[0]["values"]["value"], to_binary_dict(data))
@@ -643,7 +643,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             self.tearDown()
             self.setUp()
 
-    def test_json_basic(self):
+    def test_json_basic(self) -> None:
         if not self.isMySQL57():
             self.skipTest("Json is only supported in mysql 5.7")
 
@@ -663,7 +663,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         for data in types:
             create_query = "CREATE TABLE test (id int, value json);"
             insert_query = (
-                """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
+                    """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
             )
             event = self.create_and_insert_value(create_query, insert_query)
             self.assertEqual(event.rows[0]["values"]["value"], data)
@@ -671,7 +671,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             self.tearDown()
             self.setUp()
 
-    def test_json_unicode(self):
+    def test_json_unicode(self) -> None:
         if not self.isMySQL57():
             self.skipTest("Json is only supported in mysql 5.7")
         create_query = "CREATE TABLE test (id int, value json);"
@@ -679,22 +679,22 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["value"][b"miam"], "🍔".encode("utf8"))
 
-    def test_json_long_string(self):
+    def test_json_long_string(self) -> None:
         if not self.isMySQL57():
             self.skipTest("Json is only supported in mysql 5.7")
         create_query = "CREATE TABLE test (id int, value json);"
         # The string length needs to be larger than what can fit in a single byte.
         string_value = "super_long_string" * 100
         insert_query = (
-            'INSERT INTO test (id, value) VALUES (1, \'{"my_key": "%s"}\');'
-            % (string_value,)
+                'INSERT INTO test (id, value) VALUES (1, \'{"my_key": "%s"}\');'
+                % (string_value,)
         )
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(
             event.rows[0]["values"]["value"], to_binary_dict({"my_key": string_value})
         )
 
-    def test_null(self):
+    def test_null(self) -> None:
         create_query = "CREATE TABLE test ( \
             test TINYINT NULL DEFAULT NULL, \
             test2 TINYINT NULL DEFAULT NULL, \
@@ -725,7 +725,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test7"], 42)
         self.assertEqual(event.rows[0]["values"]["test20"], 84)
 
-    def test_encoding_latin1(self):
+    def test_encoding_latin1(self) -> None:
         db = copy.copy(self.database)
         db["charset"] = "latin1"
         self.connect_conn_control(db)
@@ -742,7 +742,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(event.rows[0]["values"]["test"], string)
 
-    def test_encoding_utf8(self):
+    def test_encoding_utf8(self) -> None:
         if platform.python_version_tuple()[0] == "2":
             string = unichr(0x20AC)
         else:
@@ -756,7 +756,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertMultiLineEqual(event.rows[0]["values"]["test"], string)
 
-    def test_zerofill(self):
+    def test_zerofill(self) -> None:
         create_query = "CREATE TABLE test ( \
             test TINYINT UNSIGNED ZEROFILL DEFAULT NULL, \
             test2 SMALLINT UNSIGNED ZEROFILL DEFAULT NULL, \
@@ -774,7 +774,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.rows[0]["values"]["test4"], "0000000001")
         self.assertEqual(event.rows[0]["values"]["test5"], "00000000000000000001")
 
-    def test_partition_id(self):
+    def test_partition_id(self) -> None:
         if not self.isMySQL80AndMore():
             self.skipTest("Not supported in this version of MySQL")
         create_query = "CREATE TABLE test (id INTEGER) \
@@ -790,7 +790,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.extra_data_type, 1)
         self.assertEqual(event.partition_id, 3)
 
-    def test_status_vars(self):
+    def test_status_vars(self) -> None:
         """Test parse of status variables in query events
 
         Majority of status variables available depends on the settings of db.
@@ -806,7 +806,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.catalog_nz_code, b"std")
         self.assertEqual(event.mts_accessed_db_names, [b"pymysqlreplication_test"])
 
-    def test_null_bitmask(self):
+    def test_null_bitmask(self) -> None:
         """Test parse of null-bitmask in table map events
 
         Create table with 16 columns with nullability specified by 'bit_mask' variable
@@ -868,7 +868,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         self.assertEqual(event.event_type, TABLE_MAP_EVENT)
         self.assertEqual(event.null_bitmask, bit_mask)
 
-    def test_mariadb_only_status_vars(self):
+    def test_mariadb_only_status_vars(self) -> None:
         """Test parse of mariadb exclusive status variables (a field in query event)
 
         A query event for mariadb must be parsed successfully

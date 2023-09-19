@@ -549,7 +549,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         self.assertEqual(last_event_type, TABLE_MAP_EVENT)
 
     def test_event_validation(self) -> None:
-        def create_binlog_packet_wrapper(pkt) -> BinLogPacketWrapper:
+        def create_binlog_packet_wrapper(pkt: MysqlPacket) -> BinLogPacketWrapper:
             return BinLogPacketWrapper(
                 pkt,
                 self.stream.table_map,
