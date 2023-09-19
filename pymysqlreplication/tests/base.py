@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from __future__ import annotations
 
 import copy
 import os
 import sys
+from typing import Optional, Union
 
 import pymysql
 from pymysql.connections import Connection
@@ -35,7 +35,7 @@ class PyMySQLReplicationTestCase(base):
             "db": "pymysqlreplication_test",
         }
 
-        self.conn_control: None | Connection = None
+        self.conn_control: Optional[Connection] = None
         db = copy.copy(self.database)
         db["db"] = None
         self.connect_conn_control(db)
@@ -43,7 +43,7 @@ class PyMySQLReplicationTestCase(base):
         self.execute("CREATE DATABASE pymysqlreplication_test")
         db = copy.copy(self.database)
         self.connect_conn_control(db)
-        self.stream: BinLogStreamReader | None = None
+        self.stream: Optional[BinLogStreamReader] = None
         self.resetBinLog()
         self.isMySQL56AndMore()
         self.__is_mariaDB = None
@@ -104,7 +104,7 @@ class PyMySQLReplicationTestCase(base):
         c.execute(query)
         return c
 
-    def execute_with_args(self, query: str, args: dict | tuple | list | None) -> Cursor:
+    def execute_with_args(self, query: str, args:  Union[dict, tuple, list, None]) -> Cursor:
         c = self.conn_control.cursor()
         c.execute(query, args)
         return c
@@ -123,13 +123,13 @@ class PyMySQLReplicationTestCase(base):
         if version == 5.7:
             self.execute("SET @@sql_mode='NO_ENGINE_SUBSTITUTION'")
 
-    def bin_log_format(self) -> str | None:
+    def bin_log_format(self) -> Optional[str]:
         query = "SELECT @@binlog_format"
         cursor = self.execute(query)
         result = cursor.fetchone()
         return result[0]
 
-    def bin_log_basename(self) -> str | None:
+    def bin_log_basename(self) -> Optional[str]:
         cursor = self.execute("SELECT @@log_bin_basename")
         bin_log_basename = cursor.fetchone()[0]
         bin_log_basename = bin_log_basename.split("/")[-1]

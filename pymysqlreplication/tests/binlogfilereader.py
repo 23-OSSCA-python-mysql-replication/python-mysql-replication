@@ -1,8 +1,8 @@
 """Read binlog files"""
-from __future__ import annotations
 
 import struct
 from io import IOBase
+from typing import Optional, Union
 
 from pymysqlreplication import constants
 from pymysqlreplication.event import FormatDescriptionEvent, BinLogEvent
@@ -13,19 +13,58 @@ from pymysqlreplication.row_event import TableMapEvent
 from pymysqlreplication.row_event import WriteRowsEvent
 
 
+# pylint: disable=too-many-instance-attributes
+class SimpleBinLogEvent(object):
+    """An event from a binlog file"""
+
+    def __init__(self, header):
+        """Initialize the Event with the event header"""
+        unpacked = struct.unpack("<IBIIIH", header)
+        self.timestamp: int = unpacked[0]
+        self.event_type: int = unpacked[1]
+        self.server_id: int = unpacked[2]
+        self.event_size: int = unpacked[3]
+        self.log_pos: int = unpacked[4]
+        self.flags: int = unpacked[5]
+
+        self.body: Optional[Union[str, bytes]] = None
+        self.pos: Optional[int] = None
+
+    def set_body(self, body):
+        """Save the body bytes"""
+        self.body = body
+
+    def set_pos(self, pos):
+        """Save the event position"""
+        self.pos = pos
+
+    def __repr__(self):
+        cls = self.__class__
+        mod = cls.__module__
+        name = cls.__name__
+        fmt = "<{mod}.{name}(timestamp={ts}, event_type={et}, log_pos={pos})>"
+        return fmt.format(
+            mod=mod,
+            name=name,
+            ts=int(self.timestamp),
+            et=self.event_type,
+            pos=self.log_pos,
+        )
+
+
 class SimpleBinLogFileReader(object):
     """Read binlog files"""
 
     _expected_magic = b"\xfebin"
 
-    def __init__(self, file_path: str, only_events: None | BinLogEvent = None):
-        self._current_event: None | SimpleBinLogEvent = None
-        self._file: None | IOBase = None
+    def __init__(self, file_path: str, only_events: Optional[BinLogEvent] = None):
+        self._current_event: Optional[SimpleBinLogEvent] = None
+        self._file: Optional[IOBase] = None
         self._file_path: str = file_path
         self._only_events: BinLogEvent = only_events
         self._pos: int = None
 
-    def fetchone(self) -> None | BinLogEvent:
+    def fetchone(self) -> Optional[BinLogEvent]:
         """Fetch one record from the binlog file"""
         if self._pos is None or self._pos < 4:
             self._read_magic()
@@ -63,7 +102,7 @@ class SimpleBinLogFileReader(object):
             self._pos = self._file.tell()
             assert self._pos == 0
 
-    def _read_event(self) -> None | SimpleBinLogEvent:
+    def _read_event(self) -> Optional[SimpleBinLogEvent]:
         """Read an event from the binlog file"""
         # Assuming a binlog version > 1
         headerlength = 19
@@ -106,45 +145,6 @@ class SimpleBinLogFileReader(object):
         only = [type(x).__name__ for x in self._only_events]
         fmt = "<{mod}.{name}(file_path={fpath}, only_events={only})>"
         return fmt.format(mod=mod, name=name, fpath=self._file_path, only=only)
-
-
-# pylint: disable=too-many-instance-attributes
-class SimpleBinLogEvent(object):
-    """An event from a binlog file"""
-
-    def __init__(self, header):
-        """Initialize the Event with the event header"""
-        unpacked = struct.unpack("<IBIIIH", header)
-        self.timestamp: int = unpacked[0]
-        self.event_type: int = unpacked[1]
-        self.server_id: int = unpacked[2]
-        self.event_size: int = unpacked[3]
-        self.log_pos: int = unpacked[4]
-        self.flags: int = unpacked[5]
-
-        self.body: None | str | bytes = None
-        self.pos: None | int = None
-
-    def set_body(self, body):
-        """Save the body bytes"""
-        self.body = body
-
-    def set_pos(self, pos):
-        """Save the event position"""
-        self.pos = pos
-
-    def __repr__(self):
-        cls = self.__class__
-        mod = cls.__module__
-        name = cls.__name__
-        fmt = "<{mod}.{name}(timestamp={ts}, event_type={et}, log_pos={pos})>"
-        return fmt.format(
-            mod=mod,
-            name=name,
-            ts=int(self.timestamp),
-            et=self.event_type,
-            pos=self.log_pos,
-        )
 
 
 class BadMagicBytesError(Exception):
