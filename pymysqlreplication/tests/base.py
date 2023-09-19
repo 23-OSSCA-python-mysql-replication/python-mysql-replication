@@ -78,7 +78,7 @@ class PyMySQLReplicationTestCase(base):
     def isMariaDB(self) -> bool:
         if self.__is_mariaDB is None:
             self.__is_mariaDB = (
-                    "MariaDB" in self.execute("SELECT VERSION()").fetchone()[0]
+                "MariaDB" in self.execute("SELECT VERSION()").fetchone()[0]
             )
         return self.__is_mariaDB
 
@@ -104,7 +104,9 @@ class PyMySQLReplicationTestCase(base):
         c.execute(query)
         return c
 
-    def execute_with_args(self, query: str, args:  Union[dict, tuple, list, None]) -> Cursor:
+    def execute_with_args(
+        self, query: str, args: Union[dict, tuple, list, None]
+    ) -> Cursor:
         c = self.conn_control.cursor()
         c.execute(query, args)
         return c

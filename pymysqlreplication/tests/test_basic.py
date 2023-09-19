@@ -588,7 +588,7 @@ class TestBasicBinLogStreamReader(base.PyMySQLReplicationTestCase):
         # Assume a bit flip occurred while data was being transmitted    q(1001000) -> U(0110111)
         modified_byte = b"U"
         wrong_event_data = (
-                correct_event_data[:1] + modified_byte + correct_event_data[2:]
+            correct_event_data[:1] + modified_byte + correct_event_data[2:]
         )
 
         packet = MysqlPacket(correct_event_data, 0)
@@ -1446,7 +1446,7 @@ class TestMariadbBinlogStreamReader2(base.PyMySQLReplicationMariaDbTestCase):
 
         try:
             with open(
-                    f"{encryption_key_file_path}/.mariadb/no_encryption_key.key", "r"
+                f"{encryption_key_file_path}/.mariadb/no_encryption_key.key", "r"
             ) as key_file:
                 first_line = key_file.readline()
                 key_version_from_key_file = int(first_line.split(";")[0])

@@ -37,7 +37,9 @@ class TestDataType(base.PyMySQLReplicationTestCase):
     def ignoredEvents(self) -> List[Type[Union[GtidEvent, PreviousGtidsEvent]]]:
         return [GtidEvent, PreviousGtidsEvent]
 
-    def create_and_insert_value(self, create_query: str, insert_query: str) -> WriteRowsEvent:
+    def create_and_insert_value(
+        self, create_query: str, insert_query: str
+    ) -> WriteRowsEvent:
         self.execute(create_query)
         self.execute(insert_query)
         self.execute("COMMIT")
@@ -581,7 +583,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         )  # Make it large enough to reach 2^16 length
         create_query = "CREATE TABLE test (id int, value json);"
         insert_query = (
-                """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
+            """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
         )
         event = self.create_and_insert_value(create_query, insert_query)
 
@@ -607,7 +609,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         )  # Make it large with literal
         create_query = "CREATE TABLE test (id int, value json);"
         insert_query = (
-                """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
+            """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
         )
         event = self.create_and_insert_value(create_query, insert_query)
 
@@ -635,7 +637,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
             data = {"foo": t}
             create_query = "CREATE TABLE test (id int, value json);"
             insert_query = (
-                    """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
+                """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
             )
             event = self.create_and_insert_value(create_query, insert_query)
             self.assertEqual(event.rows[0]["values"]["value"], to_binary_dict(data))
@@ -663,7 +665,7 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         for data in types:
             create_query = "CREATE TABLE test (id int, value json);"
             insert_query = (
-                    """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
+                """INSERT INTO test (id, value) VALUES (1, '%s');""" % json.dumps(data)
             )
             event = self.create_and_insert_value(create_query, insert_query)
             self.assertEqual(event.rows[0]["values"]["value"], data)
@@ -686,8 +688,8 @@ class TestDataType(base.PyMySQLReplicationTestCase):
         # The string length needs to be larger than what can fit in a single byte.
         string_value = "super_long_string" * 100
         insert_query = (
-                'INSERT INTO test (id, value) VALUES (1, \'{"my_key": "%s"}\');'
-                % (string_value,)
+            'INSERT INTO test (id, value) VALUES (1, \'{"my_key": "%s"}\');'
+            % (string_value,)
         )
         event = self.create_and_insert_value(create_query, insert_query)
         self.assertEqual(
