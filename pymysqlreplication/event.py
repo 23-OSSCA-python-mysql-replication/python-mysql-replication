@@ -6,18 +6,21 @@ import datetime
 import decimal
 import zlib
 
+from pymysql.connections import MysqlPacket, Connection
+from pymysqlreplication.table import Table
+
 from pymysqlreplication.constants.STATUS_VAR_KEY import *
 from pymysqlreplication.exceptions import StatusVariableMismatch
-from typing import Union, Optional
+from typing import Union, Optional, Type, Dict
 
 
 class BinLogEvent(object):
     def __init__(
         self,
-        from_packet,
-        event_size,
-        table_map,
-        ctl_connection,
+        from_packet: Type[MysqlPacket],
+        event_size: int,
+        table_map: Dict[int, Table],
+        ctl_connection: Connection,
         mysql_version=(0, 0, 0),
         only_tables=None,
         ignored_tables=None,

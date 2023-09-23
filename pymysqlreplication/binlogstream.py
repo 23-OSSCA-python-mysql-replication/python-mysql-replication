@@ -35,6 +35,21 @@ from .exceptions import BinLogNotEnabled
 from .gtid import GtidSet
 from .packet import BinLogPacketWrapper
 from .row_event import UpdateRowsEvent, WriteRowsEvent, DeleteRowsEvent, TableMapEvent
+from typing import (
+    ByteString,
+    Union,
+    Optional,
+    List,
+    Tuple,
+    Dict,
+    Any,
+    Iterator,
+    FrozenSet,
+    Type,
+    Set,
+    Iterable,
+    Callable,
+)
 
 try:
     from pymysql.constants.COMMAND import COM_BINLOG_DUMP_GTID
@@ -57,7 +72,9 @@ class ReportSlave(object):
     password = ""
     port = 0
 
-    def __init__(self, value):
+    def __init__(
+        self, value: Union[str, Tuple[str, str, str, int], Dict[str, Union[str, int]]]
+    ) -> None:
         """
         Attributes:
             value: string or tuple
@@ -82,7 +99,7 @@ class ReportSlave(object):
         else:
             self.hostname = value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<ReportSlave hostname=%s username=%s password=%s port=%d>" % (
             self.hostname,
             self.username,
@@ -90,7 +107,7 @@ class ReportSlave(object):
             self.port,
         )
 
-    def encoded(self, server_id, master_id=0):
+    def encoded(self, server_id: int, master_id: int = 0) -> ByteString:
         """
         server_id: the slave server-id
         master_id: usually 0. Appears as "master id" in SHOW SLAVE HOSTS
@@ -155,35 +172,35 @@ class BinLogStreamReader(object):
 
     def __init__(
         self,
-        connection_settings,
-        server_id,
-        ctl_connection_settings=None,
-        resume_stream=False,
-        blocking=False,
-        only_events=None,
-        log_file=None,
-        log_pos=None,
-        end_log_pos=None,
-        filter_non_implemented_events=True,
-        ignored_events=None,
-        auto_position=None,
-        only_tables=None,
-        ignored_tables=None,
-        only_schemas=None,
-        ignored_schemas=None,
-        freeze_schema=False,
-        skip_to_timestamp=None,
-        report_slave=None,
-        slave_uuid=None,
-        pymysql_wrapper=None,
-        fail_on_table_metadata_unavailable=False,
-        slave_heartbeat=None,
-        is_mariadb=False,
-        annotate_rows_event=False,
-        ignore_decode_errors=False,
-        verify_checksum=False,
-        enable_logging=True,
-    ):
+        connection_settings: Dict,
+        server_id: int,
+        ctl_connection_settings: Optional[Dict] = None,
+        resume_stream: bool = False,
+        blocking: bool = False,
+        only_events: Optional[List[str]] = None,
+        log_file: Optional[str] = None,
+        log_pos: Optional[int] = None,
+        end_log_pos: Optional[int] = None,
+        filter_non_implemented_events: bool = True,
+        ignored_events: Optional[List[str]] = None,
+        auto_position: Optional[str] = None,
+        only_tables: Optional[List[str]] = None,
+        ignored_tables: Optional[List[str]] = None,
+        only_schemas: Optional[List[str]] = None,
+        ignored_schemas: Optional[List[str]] = None,
+        freeze_schema: bool = False,
+        skip_to_timestamp: Optional[float] = None,
+        report_slave: Optional[Union[str, Tuple[str, str, str, int]]] = None,
+        slave_uuid: Optional[str] = None,
+        pymysql_wrapper: Optional[Callable] = None,
+        fail_on_table_metadata_unavailable: bool = False,
+        slave_heartbeat: Optional[float] = None,
+        is_mariadb: bool = False,
+        annotate_rows_event: bool = False,
+        ignore_decode_errors: bool = False,
+        verify_checksum: bool = False,
+        enable_logging: bool = True,
+    ) -> None:
         """
         Attributes:
             ctl_connection_settings: Connection settings for cluster holding

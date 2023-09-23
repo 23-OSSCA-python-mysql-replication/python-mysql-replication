@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import struct
+from typing import Tuple, FrozenSet, Type, Optional, List
+
+from pymysql.connections import MysqlPacket, Connection
 
 from pymysqlreplication import constants, event, row_event
 
@@ -93,21 +96,21 @@ class BinLogPacketWrapper(object):
 
     def __init__(
         self,
-        from_packet,
-        table_map,
-        ctl_connection,
-        mysql_version,
-        use_checksum,
-        allowed_events,
-        only_tables,
-        ignored_tables,
-        only_schemas,
-        ignored_schemas,
-        freeze_schema,
-        fail_on_table_metadata_unavailable,
-        ignore_decode_errors,
-        verify_checksum,
-    ):
+        from_packet: MysqlPacket,
+        table_map: dict,
+        ctl_connection: Connection,
+        mysql_version: Tuple[int, int, int],
+        use_checksum: bool,
+        allowed_events: FrozenSet[Type[event.BinLogEvent]],
+        only_tables: Optional[List[str]],
+        ignored_tables: Optional[List[str]],
+        only_schemas: Optional[List[str]],
+        ignored_schemas: Optional[List[str]],
+        freeze_schema: bool,
+        fail_on_table_metadata_unavailable: bool,
+        ignore_decode_errors: bool,
+        verify_checksum: bool,
+    ) -> None:
         # -1 because we ignore the ok byte
         self.read_bytes = 0
         # Used when we want to override a value in the data buffer
