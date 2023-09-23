@@ -5,7 +5,7 @@ import copy
 from pymysqlreplication import BinLogStreamReader
 import os
 import sys
-import yaml
+import json
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -22,9 +22,9 @@ class PyMySQLReplicationTestCase(base):
     def setUp(self, charset="utf8"):
         # default
         with open(
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yml")
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
         ) as f:
-            databases = yaml.load(f, Loader=yaml.Loader)
+            databases = json.load(f)
         self.database = databases["mysql-5"]
         """
         self.database = {
