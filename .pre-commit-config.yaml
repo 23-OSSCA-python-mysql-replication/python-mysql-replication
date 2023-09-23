@@ -1,19 +1,26 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
 
--   repo: https://github.com/astral-sh/ruff-pre-commit
+  - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.0.286
     hooks:
-    -   id: ruff
+      - id: ruff
         args: [ --fix, --exit-non-zero-on-fix ]
 
--   repo: https://github.com/psf/black
+  - repo: https://github.com/psf/black
     rev: 23.7.0
     hooks:
-    -   id: black
+      - id: black
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.1
+    hooks:
+      - id: mypy
+        args: [ --strict ]
+        exclude: ^(?:examples|docs)/
