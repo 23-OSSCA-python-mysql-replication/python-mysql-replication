@@ -21,7 +21,9 @@ class PyMySQLReplicationTestCase(base):
 
     def setUp(self, charset="utf8"):
         # default
-        with open("pymysqlreplication/tests/config.yml") as f:
+        with open(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yml")
+        ) as f:
             databases = yaml.load(f, Loader=yaml.Loader)
         self.database = databases["mysql-5"]
         """
