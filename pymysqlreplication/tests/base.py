@@ -5,6 +5,7 @@ import copy
 from pymysqlreplication import BinLogStreamReader
 import os
 import sys
+import yaml
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -20,6 +21,10 @@ class PyMySQLReplicationTestCase(base):
 
     def setUp(self, charset="utf8"):
         # default
+        with open("pymysqlreplication/tests/config.yml") as f:
+            databases = yaml.load(f, Loader=yaml.Loader)
+        self.database = databases["mysql-5"]
+        """
         self.database = {
             "host": os.environ.get("MYSQL_5_7") or "localhost",
             "user": "root",
@@ -29,6 +34,7 @@ class PyMySQLReplicationTestCase(base):
             "charset": charset,
             "db": "pymysqlreplication_test",
         }
+        """
 
         self.conn_control = None
         db = copy.copy(self.database)
