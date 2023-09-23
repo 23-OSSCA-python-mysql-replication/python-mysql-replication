@@ -6,6 +6,7 @@ from pymysqlreplication import BinLogStreamReader
 import os
 import sys
 import json
+import pytest
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -13,6 +14,11 @@ else:
     import unittest
 
 base = unittest.TestCase
+
+
+@pytest.fixture
+def get_dbms(request):
+    return request.config.getoption('--dbms')
 
 
 class PyMySQLReplicationTestCase(base):
