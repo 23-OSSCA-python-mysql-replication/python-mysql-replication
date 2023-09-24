@@ -22,7 +22,7 @@ class PyMySQLReplicationTestCase(base):
 
     def setUp(self, charset="utf8"):
         # default
-        dbms = os.environ.get("test_dbms", "mysql-5")
+        dbms = os.environ.get("DBMS", "mysql-5")
         with open(
             os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
         ) as f:
