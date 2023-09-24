@@ -2,7 +2,7 @@ version: '3.4'
 
 x-mysql: &mysql
   environment:
-    MYSQL_ALLOW_EMPTY_PASSWORD: true
+    MYSQL_ALLOW_EMPTY_PASSWORD: "true"
   command: >
     mysqld
     --log-bin=mysql-bin.log
