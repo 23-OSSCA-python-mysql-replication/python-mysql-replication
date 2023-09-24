@@ -6,9 +6,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.7', '3.11', 'pypy-3.7', 'pypy-3.9']
-        dbms: ['mysql-5', 'mysql-8']
-    name: ${{ matrix.python }} with ${{ matrix.dbms }}
+        include:
+          - {name: 'CPython 3.7', python: '3.7'}
+          - {name: 'CPython 3.11', python: '3.11'}
+          - {name: 'Pypy 3.7', python: 'pypy-3.7'}
+          - {name: 'Pypy 3.9', python: 'pypy-3.9'}
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
 
@@ -23,7 +26,7 @@ jobs:
 
       - name: Run database server in docker
         run: |
-          docker-compose up -d ${{ matrix.dbms }}
+          docker-compose up -d 
           echo "wait mysql server"
         
           while :
@@ -43,5 +46,7 @@ jobs:
 
       - name: Run test suite
         run: |
-          pytest -k "not test_no_trailing_rotate_event and not test_end_log_pos" --dbms=${{ matrix.dbms }}
+          for dbms in mysql-5 mysql-8; do
+            pytest -k "not test_no_trailing_rotate_event and not test_end_log_pos" --dbms=$dbms
+          done
 

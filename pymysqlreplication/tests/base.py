@@ -21,11 +21,12 @@ class PyMySQLReplicationTestCase(base):
 
     def setUp(self, charset="utf8"):
         # default
+        dbms = os.environ.get("test_dbms", "mysql-5")
         with open(
             os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
         ) as f:
             databases = json.load(f)
-        self.database = databases["mysql-5"]
+        self.database = databases[dbms]
         """
         self.database = {
             "host": os.environ.get("MYSQL_5_7") or "localhost",
