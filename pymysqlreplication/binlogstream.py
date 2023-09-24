@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import struct
 import logging
+import struct
 from distutils.version import LooseVersion
+from typing import (
+    ByteString,
+    Union,
+    Optional,
+    List,
+    Tuple,
+    Dict,
+    Callable,
+)
 
 import pymysql
 from pymysql.constants.COMMAND import COM_BINLOG_DUMP, COM_REGISTER_SLAVE
@@ -35,21 +44,6 @@ from .exceptions import BinLogNotEnabled
 from .gtid import GtidSet
 from .packet import BinLogPacketWrapper
 from .row_event import UpdateRowsEvent, WriteRowsEvent, DeleteRowsEvent, TableMapEvent
-from typing import (
-    ByteString,
-    Union,
-    Optional,
-    List,
-    Tuple,
-    Dict,
-    Any,
-    Iterator,
-    FrozenSet,
-    Type,
-    Set,
-    Iterable,
-    Callable,
-)
 
 try:
     from pymysql.constants.COMMAND import COM_BINLOG_DUMP_GTID
