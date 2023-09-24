@@ -4,6 +4,7 @@ from pymysqlreplication import BinLogStreamReader
 import os
 import json
 import pytest
+import logging
 
 import unittest
 
@@ -27,6 +28,8 @@ class PyMySQLReplicationTestCase(base):
         ) as f:
             databases = json.load(f)
         self.database = databases[dbms]
+        logging.info(f"Using database: {self.database}")
+        logging.info(f"Using DBMS: {dbms}")
         """
         self.database = {
             "host": os.environ.get("MYSQL_5_7") or "localhost",

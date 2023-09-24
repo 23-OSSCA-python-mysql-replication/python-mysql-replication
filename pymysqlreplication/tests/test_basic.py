@@ -13,6 +13,10 @@ from pymysqlreplication.constants.BINLOG import *
 from pymysqlreplication.row_event import *
 from pymysqlreplication.packet import BinLogPacketWrapper
 from pymysql.protocol import MysqlPacket
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
 
 __all__ = [
     "TestBasicBinLogStreamReader",
@@ -1424,7 +1428,6 @@ class TestMariadbBinlogStreamReader2(base.PyMySQLReplicationMariaDbTestCase):
         event = self.stream.fetchone()
         self.assertEqual(event.event_type, 163)
         self.assertEqual(event.gtid_list[0].gtid, "0-1-15")
-        self.assertEqual(event.gtid_list[0].gtid, "0-") # add for test 
 
 
 class TestRowsQueryLogEvents(base.PyMySQLReplicationTestCase):
