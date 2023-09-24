@@ -14,7 +14,7 @@ from pymysqlreplication.row_event import *
 from pymysqlreplication.packet import BinLogPacketWrapper
 from pymysql.protocol import MysqlPacket
 import logging
-
+import pytest 
 logging.basicConfig(level=logging.INFO)
 
 
@@ -1298,7 +1298,7 @@ class TestStatementConnectionSetting(base.PyMySQLReplicationTestCase):
         self.assertEqual(self.bin_log_format(), "ROW")
         super(TestStatementConnectionSetting, self).tearDown()
 
-
+@pytest.mark.mariadb
 class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
     def test_binlog_checkpoint_event(self):
         self.stream.close()
@@ -1329,7 +1329,7 @@ class TestMariadbBinlogStreamReader(base.PyMySQLReplicationMariaDbTestCase):
         self.assertIsInstance(event, MariadbBinLogCheckPointEvent)
         self.assertEqual(event.filename, self.bin_log_basename() + ".000001")
 
-
+@pytest.mark.mariadb
 class TestMariadbBinlogStreamReader2(base.PyMySQLReplicationMariaDbTestCase):
     def test_annotate_rows_event(self):
         query = "CREATE TABLE test (id INT NOT NULL AUTO_INCREMENT, data VARCHAR (50) NOT NULL, PRIMARY KEY (id))"
