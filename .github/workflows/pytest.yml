@@ -56,5 +56,5 @@ jobs:
       - name: Run tests for MariaDB
         run: |
           export DBMS=mariadb-10
-          run: pytest -m mariadb -k "not test_no_trailing_rotate_event and not test_end_log_pos"
+          pytest -m mariadb -k "not test_no_trailing_rotate_event and not test_end_log_pos"
 
