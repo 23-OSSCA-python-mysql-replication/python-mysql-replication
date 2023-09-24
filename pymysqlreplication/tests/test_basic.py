@@ -1424,6 +1424,7 @@ class TestMariadbBinlogStreamReader2(base.PyMySQLReplicationMariaDbTestCase):
         event = self.stream.fetchone()
         self.assertEqual(event.event_type, 163)
         self.assertEqual(event.gtid_list[0].gtid, "0-1-15")
+        self.assertEqual(event.gtid_list[0].gtid, "0-") # add for test 
 
 
 class TestRowsQueryLogEvents(base.PyMySQLReplicationTestCase):
