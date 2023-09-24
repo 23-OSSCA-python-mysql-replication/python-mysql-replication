@@ -47,7 +47,7 @@ jobs:
       - name: Run test suite
         working-directory: pymysqlreplication/tests
         run: |
-          for dbms in mysql-5 mysql-8 mariadb-10;; do
+          for dbms in mysql-5 mysql-8 mariadb-10; do
             pytest -k "not test_no_trailing_rotate_event and not test_end_log_pos" --dbms=$dbms
           done
 
