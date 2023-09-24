@@ -50,5 +50,5 @@ jobs:
           dbms_versions=("mysql-5" "mysql-8" "mariadb-10")
           for version in "${dbms_versions[@]}"; do
             export DBMS=$version
-            pytest -k "not test_no_trailing_rotate_event and not test_end_log_pos" --dbms=$version
+            pytest -s -k "not test_no_trailing_rotate_event and not test_end_log_pos" --dbms=$version
           done
